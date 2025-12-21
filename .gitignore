@@ -145,3 +145,11 @@ data/
 
 # Redis
 dump.rdb
+
+# SSL/TLS Certificates and Private Keys
+*.pem
+*.key
+*.crt
+*.csr
+*.p12
+*.pfx
