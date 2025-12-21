@@ -74,7 +74,23 @@ limiter = Limiter(
 limiter.init_app(app)
 
 # Database connections
-mongo_client = MongoClient(app.config['MONGO_URI'])
+try:
+    mongo_client = MongoClient(
+        app.config['MONGO_URI'],
+        tls=True,
+        tlsAllowInvalidCertificates=False,
+        serverSelectionTimeoutMS=5000,
+        connectTimeoutMS=10000,
+        socketTimeoutMS=10000
+    )
+    # Test connection
+    mongo_client.admin.command('ping')
+    print("✅ MongoDB connected successfully")
+except Exception as e:
+    print(f"❌ MongoDB connection failed: {e}")
+    if is_production():
+        raise
+    
 db = mongo_client.hide_anything_qr
 try:
     redis_client = redis.from_url(os.environ.get('REDIS_URL', 'redis://localhost:6379/0'))
