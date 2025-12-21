@@ -1,0 +1,1018 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Hide Anything with QR - Secure Sharing</title>
+    <link rel="icon" type="image/svg+xml" href="favicon.svg">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="styles/modern.css">
+    <link rel="stylesheet" href="styles/dashboard.css?v=3">
+</head>
+<body>
+    <!-- Authentication Section -->
+    <div id="authSection" class="auth-section">
+        <div class="auth-card">
+            <div class="auth-title">
+                <i class="fas fa-qrcode"></i> Hide Anything with QR
+            </div>
+            
+            <!-- Login Form -->
+            <form id="loginForm" class="auth-form">
+                <h2>Login</h2>
+                <div class="auth-toggle">
+                    <button type="button" class="toggle-btn active" data-mode="email">Email</button>
+                    <button type="button" class="toggle-btn" data-mode="phone">Phone</button>
+                </div>
+                <div class="form-group" id="loginEmailGroup">
+                    <label class="form-label">Email</label>
+                    <input type="email" id="loginEmail" class="form-input" placeholder="Enter your email">
+                </div>
+                <div class="form-group hidden" id="loginPhoneGroup">
+                    <label class="form-label">Phone Number</label>
+                    <input type="tel" id="loginPhone" class="form-input" placeholder="+1234567890">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Password</label>
+                    <input type="password" id="loginPassword" class="form-input" placeholder="Enter your password" required>
+                </div>
+                <button type="submit" class="btn btn-primary btn-block">
+                    <i class="fas fa-sign-in-alt"></i> Login
+                </button>
+                <p class="auth-switch">
+                    Don't have an account? <a href="#" onclick="showRegister(); return false;">Register</a>
+                </p>
+            </form>
+
+            <!-- Register Form -->
+            <form id="registerForm" class="auth-form hidden">
+                <h2>Register</h2>
+                <div class="auth-toggle">
+                    <button type="button" class="toggle-btn active" data-mode="email">Email</button>
+                    <button type="button" class="toggle-btn" data-mode="phone">Phone</button>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Username</label>
+                    <input type="text" id="registerUsername" class="form-input" placeholder="Choose a username" required>
+                </div>
+                <div class="form-group" id="registerEmailGroup">
+                    <label class="form-label">Email</label>
+                    <input type="email" id="registerEmail" class="form-input" placeholder="Enter your email">
+                </div>
+                <div class="form-group hidden" id="registerPhoneGroup">
+                    <label class="form-label">Phone Number</label>
+                    <input type="tel" id="registerPhone" class="form-input" placeholder="+1234567890">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Password</label>
+                    <input type="password" id="registerPassword" class="form-input" placeholder="Choose a password (min 8 chars)" required>
+                </div>
+                <button type="submit" class="btn btn-primary btn-block">
+                    <i class="fas fa-user-plus"></i> Register
+                </button>
+                <p class="auth-switch">
+                    Already have an account? <a href="#" onclick="showLoginForm(); return false;">Login</a>
+                </p>
+            </form>
+        </div>
+    </div>
+
+    <!-- Main Application Container -->
+    <div id="appContainer" class="app-container hidden">
+        <!-- Header -->
+        <header class="app-header">
+            <div class="logo">
+                <i class="fas fa-qrcode"></i>
+                <h1>HideAnything<span class="logo-accent">.QR</span></h1>
+            </div>
+            
+            <nav class="top-nav">
+                <a href="#" class="nav-link active" data-section="dashboard">
+                    <i class="fas fa-home"></i> Dashboard
+                </a>
+                <a href="#" class="nav-link" data-section="scan">
+                    <i class="fas fa-camera"></i> Scan QR
+                </a>
+                <a href="#" class="nav-link" data-section="generate">
+                    <i class="fas fa-qrcode"></i> Generate QR
+                </a>
+                <a href="#" class="nav-link" data-section="friends">
+                    <i class="fas fa-users"></i> Friends
+                </a>
+                <a href="#" class="nav-link" data-section="profile">
+                    <i class="fas fa-user"></i> Profile
+                </a>
+            </nav>
+            
+            <div class="user-menu">
+                <div class="notification-wrapper">
+                    <button class="notification-btn" id="notificationBtn">
+                        <i class="fas fa-bell"></i>
+                        <span class="notification-badge" id="notificationBadge" style="display: none;">0</span>
+                    </button>
+                    
+                    <!-- Notification Dropdown -->
+                    <div class="notification-dropdown" id="notificationDropdown" style="display: none;">
+                        <div class="notification-header">
+                            <h3>Notifications</h3>
+                            <div class="notification-actions">
+                                <button class="btn-link" id="markAllReadBtn">Mark all read</button>
+                                <button class="btn-link" id="clearAllBtn">Clear all</button>
+                            </div>
+                        </div>
+                        <div class="notification-list" id="notificationList">
+                            <div class="notification-item empty">Loading...</div>
+                        </div>
+                    </div>
+                </div>
+                <div class="user-avatar" id="userAvatar">U</div>
+            </div>
+        </header>
+
+        <!-- Main Content -->
+        <main class="main-content">
+            <!-- Left Sidebar -->
+            <aside class="left-sidebar">
+                <ul class="sidebar-menu">
+                    <li class="sidebar-item">
+                        <a href="#" class="sidebar-link active" data-section="dashboard">
+                            <i class="fas fa-home"></i> Dashboard
+                        </a>
+                    </li>
+                    <li class="sidebar-item">
+                        <a href="#" class="sidebar-link" data-section="scan">
+                            <i class="fas fa-camera"></i> Scan QR
+                        </a>
+                    </li>
+                    <li class="sidebar-item">
+                        <a href="#" class="sidebar-link" data-section="generate">
+                            <i class="fas fa-qrcode"></i> Generate QR
+                        </a>
+                    </li>
+                    <li class="sidebar-item">
+                        <a href="#" class="sidebar-link" data-section="files">
+                            <i class="fas fa-folder"></i> My Files
+                        </a>
+                    </li>
+                    <li class="sidebar-item">
+                        <a href="#" class="sidebar-link" data-section="friends">
+                            <i class="fas fa-users"></i> Friends
+                        </a>
+                    </li>
+                    <li class="sidebar-item">
+                        <a href="#" class="sidebar-link" data-section="shared">
+                            <i class="fas fa-share-alt"></i> Shared
+                        </a>
+                    </li>
+                    <li class="sidebar-item">
+                        <a href="#" class="sidebar-link" data-section="profile">
+                            <i class="fas fa-user"></i> Profile
+                        </a>
+                    </li>
+                    <li class="sidebar-item">
+                        <a href="#" class="sidebar-link" data-section="settings">
+                            <i class="fas fa-cog"></i> Settings
+                        </a>
+                    </li>
+                    <li class="sidebar-item">
+                        <a href="#" class="sidebar-link" onclick="logout(); return false;">
+                            <i class="fas fa-sign-out-alt"></i> Logout
+                        </a>
+                    </li>
+                </ul>
+            </aside>
+
+            <!-- Content Area -->
+            <div class="content-wrapper">
+                <!-- Dashboard -->
+                <section id="dashboardSection" class="content-section active">
+                    <h2 class="section-title">Dashboard</h2>
+                    
+                    <div class="stats-grid">
+                        <div class="stat-card">
+                            <div class="stat-icon">
+                                <i class="fas fa-qrcode"></i>
+                            </div>
+                            <div class="stat-content">
+                                <h3>QR Codes Generated</h3>
+                                <div class="stat-number" id="qrCount">24</div>
+                            </div>
+                        </div>
+                        
+                        <div class="stat-card">
+                            <div class="stat-icon">
+                                <i class="fas fa-users"></i>
+                            </div>
+                            <div class="stat-content">
+                                <h3>Friends</h3>
+                                <div class="stat-number" id="friendCount">8</div>
+                            </div>
+                        </div>
+                        
+                        <div class="stat-card">
+                            <div class="stat-icon">
+                                <i class="fas fa-shield-alt"></i>
+                            </div>
+                            <div class="stat-content">
+                                <h3>Files Encrypted</h3>
+                                <div class="stat-number" id="fileCount">42</div>
+                            </div>
+                        </div>
+                        
+                        <div class="stat-card">
+                            <div class="stat-icon">
+                                <i class="fas fa-clock"></i>
+                            </div>
+                            <div class="stat-content">
+                                <h3>Last Activity</h3>
+                                <div class="stat-number" id="lastActivityTime" style="font-size: 1.5rem;">-</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="quick-actions">
+                        <h3>Quick Actions</h3>
+                        <div class="action-buttons">
+                            <button class="btn btn-primary" onclick="showSection('generate')">
+                                <i class="fas fa-plus"></i> New QR
+                            </button>
+                            <button class="btn btn-success" onclick="showSection('scan')">
+                                <i class="fas fa-camera"></i> Scan QR
+                            </button>
+                            <button class="btn btn-secondary" onclick="showSection('friends')">
+                                <i class="fas fa-user-plus"></i> Add Friend
+                            </button>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- Scan QR Section -->
+                <section id="scanSection" class="content-section">
+                    <h2 class="section-title"><i class="fas fa-camera"></i> Scan QR Code</h2>
+                    
+                    <!-- Camera Scan Card -->
+                    <div class="card">
+                        <div class="card-header">
+                            <h3 class="card-title"><i class="fas fa-camera"></i> Scan with Camera</h3>
+                        </div>
+                        <div class="card-body text-center">
+                            <video id="scannerVideo" class="scanner-video hidden"></video>
+                            <button id="startCameraBtn" onclick="startQRScanner()" class="btn btn-primary">
+                                <i class="fas fa-camera"></i> Start Camera
+                            </button>
+                            <button id="stopCameraBtn" onclick="stopQRScanner()" class="btn btn-secondary hidden">
+                                <i class="fas fa-stop"></i> Stop Camera
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Upload QR Image Card -->
+                    <div class="card">
+                        <div class="card-header">
+                            <h3 class="card-title"><i class="fas fa-upload"></i> Upload QR Code Image</h3>
+                        </div>
+                        <div class="card-body">
+                            <div class="form-group">
+                                <label class="form-label">Select QR Code Image</label>
+                                <input type="file" id="qrImageInput" class="form-input" accept="image/*">
+                            </div>
+                            <button id="decodeQrImageBtn" class="btn btn-primary">
+                                <i class="fas fa-qrcode"></i> Decode QR Code
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Scan Result Card -->
+                    <div id="scanResultCard" class="card hidden">
+                        <div class="card-header">
+                            <h3 class="card-title"><i class="fas fa-check-circle"></i> Decrypted Content</h3>
+                        </div>
+                        <div class="card-body">
+                            <div id="scanResult"></div>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- Generate QR Section -->
+                <section id="generateSection" class="content-section">
+                    <h2 class="section-title"><i class="fas fa-qrcode"></i> Generate QR Code</h2>
+                    
+                    <div class="card">
+                        <div class="card-header">
+                            <h3 class="card-title">Share Text</h3>
+                        </div>
+                        <div class="card-body">
+                            <div class="form-group">
+                                <label class="form-label">Message</label>
+                                <textarea id="shareTextInput" class="form-textarea" placeholder="Enter your secret message..."></textarea>
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label">Share with (optional)</label>
+                                <select id="shareReceiver" class="form-select">
+                                    <option value="">Public (anyone with QR code)</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label"><i class="fas fa-shield-alt"></i> Encryption Level</label>
+                                <select id="textEncryptionLevel" class="form-select">
+                                    <option value="basic">Basic (AES-128) - Fast</option>
+                                    <option value="standard" selected>Standard (AES-192) - Recommended</option>
+                                    <option value="high">High (AES-256) - Strong</option>
+                                    <option value="maximum">Maximum (AES-256 + RSA-4096) - Military Grade</option>
+                                </select>
+                                <small class="text-muted" style="display: block; margin-top: 0.5rem;">
+                                    Higher encryption provides better security but may take longer to process
+                                </small>
+                            </div>
+                            <button id="shareTextBtn" class="btn btn-primary">
+                                <i class="fas fa-qrcode"></i> Generate QR Code
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="card">
+                        <div class="card-header">
+                            <h3 class="card-title">Share File</h3>
+                        </div>
+                        <div class="card-body">
+                            <div class="form-group">
+                                <label class="form-label">Select File</label>
+                                <input type="file" id="fileInput" class="form-input" accept="image/*,video/*,audio/*,.pdf,.doc,.docx,.txt">
+                                <small class="text-muted" style="display: block; margin-top: 0.5rem;">
+                                    <i class="fas fa-info-circle"></i> Upload images, videos, documents, or any file
+                                </small>
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label">Share with (optional)</label>
+                                <select id="fileReceiver" class="form-select">
+                                    <option value="">Public (anyone with QR code)</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label"><i class="fas fa-shield-alt"></i> Encryption Level</label>
+                                <select id="fileEncryptionLevel" class="form-select">
+                                    <option value="basic">Basic (AES-128) - Fast</option>
+                                    <option value="standard" selected>Standard (AES-192) - Recommended</option>
+                                    <option value="high">High (AES-256) - Strong</option>
+                                    <option value="maximum">Maximum (AES-256 + RSA-4096) - Military Grade</option>
+                                </select>
+                                <small class="text-muted" style="display: block; margin-top: 0.5rem;">
+                                    Higher encryption provides better security but may take longer to process
+                                </small>
+                            </div>
+                            <button id="uploadFileBtn" class="btn btn-primary">
+                                <i class="fas fa-qrcode"></i> Generate QR Code
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- QR Code Display Card -->
+                    <div id="qrCodeContainer" class="card hidden">
+                        <div class="card-header">
+                            <h3 class="card-title"><i class="fas fa-qrcode"></i> Your QR Code</h3>
+                        </div>
+                        <div class="card-body text-center">
+                            <div id="qrCodeImage" class="qr-image"></div>
+                            <p class="text-muted">
+                                Share this QR code to allow others to access your encrypted content
+                            </p>
+                            <button id="downloadQrBtn" class="btn btn-secondary hidden">
+                                <i class="fas fa-download"></i> Download QR Code
+                            </button>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- Friends Section -->
+                <section id="friendsSection" class="content-section">
+                    <h2 class="section-title"><i class="fas fa-users"></i> Friends</h2>
+                    
+                    <div class="card">
+                        <div class="card-header">
+                            <h3 class="card-title">Search Users</h3>
+                        </div>
+                        <div class="card-body">
+                            <div class="form-group">
+                                <input type="text" id="searchUsersInput" class="form-input" placeholder="Search by username or email...">
+                            </div>
+                            <div id="searchResults"></div>
+                        </div>
+                    </div>
+
+                    <div class="card">
+                        <div class="card-header">
+                            <h3 class="card-title">Friend Requests</h3>
+                        </div>
+                        <div class="card-body">
+                            <div id="friendRequestsList">
+                                <p class="text-muted text-center">No pending requests</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="card">
+                        <div class="card-header">
+                            <h3 class="card-title">My Friends</h3>
+                        </div>
+                        <div class="card-body">
+                            <div id="friendsList">
+                                <p class="text-muted text-center">No friends yet</p>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- Files Section -->
+                <section id="filesSection" class="content-section">
+                    <h2 class="section-title"><i class="fas fa-folder"></i> My Files</h2>
+                    
+                    <!-- Upload Card -->
+                    <div class="card" style="margin-bottom: 1.5rem;">
+                        <div class="card-header">
+                            <h3 class="card-title"><i class="fas fa-cloud-upload-alt"></i> Upload New File</h3>
+                        </div>
+                        <div class="card-body">
+                            <div class="upload-area" id="fileUploadArea">
+                                <i class="fas fa-cloud-upload-alt" style="font-size: 3rem; color: var(--primary); margin-bottom: 1rem;"></i>
+                                <p style="margin-bottom: 0.5rem;"><strong>Drag & Drop files here</strong></p>
+                                <p class="text-muted" style="margin-bottom: 1rem;">or</p>
+                                <input type="file" id="myFileInput" style="display: none;" multiple accept="image/*,video/*,audio/*,.pdf,.doc,.docx,.txt,.zip,.rar">
+                                <button class="btn btn-primary" id="browseFilesBtn">
+                                    <i class="fas fa-folder-open"></i> Browse Files
+                                </button>
+                                <p class="text-muted" style="margin-top: 1rem; font-size: 0.875rem;">
+                                    <i class="fas fa-info-circle"></i> Max 10MB per file • Images, Videos, Documents, Archives
+                                </p>
+                            </div>
+                            <div id="uploadProgress" class="hidden" style="margin-top: 1rem;">
+                                <div style="display: flex; justify-content: space-between; margin-bottom: 0.5rem;">
+                                    <span id="uploadFileName">Uploading...</span>
+                                    <span id="uploadPercent">0%</span>
+                                </div>
+                                <div style="background: rgba(255,255,255,0.1); border-radius: 0.5rem; height: 0.5rem; overflow: hidden;">
+                                    <div id="uploadProgressBar" style="background: var(--primary); height: 100%; width: 0%; transition: width 0.3s;"></div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Files List -->
+                    <div class="card">
+                        <div class="card-header" style="display: flex; justify-content: space-between; align-items: center;">
+                            <h3 class="card-title"><i class="fas fa-list"></i> Your Files</h3>
+                            <div style="display: flex; gap: 0.5rem; align-items: center;">
+                                <select id="filesSortBy" class="form-select" style="width: auto; font-size: 0.875rem;">
+                                    <option value="date">Sort by Date</option>
+                                    <option value="name">Sort by Name</option>
+                                    <option value="size">Sort by Size</option>
+                                    <option value="type">Sort by Type</option>
+                                </select>
+                                <button class="btn btn-sm btn-outline" id="filesViewToggle" title="Toggle View">
+                                    <i class="fas fa-th"></i>
+                                </button>
+                            </div>
+                        </div>
+                        <div class="card-body" id="filesListContainer">
+                            <p class="text-muted text-center">No files uploaded yet</p>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- Shared Section -->
+                <section id="sharedSection" class="content-section">
+                    <h2 class="section-title"><i class="fas fa-share-alt"></i> My Shared QR Codes</h2>
+                    
+                    <!-- Filter Section -->
+                    <div class="card" style="margin-bottom: 1.5rem;">
+                        <div class="card-body">
+                            <h3 style="margin: 0 0 1rem 0; font-size: 1.1rem; display: flex; align-items: center; gap: 8px;">
+                                <i class="fas fa-filter"></i> Filter QR Codes
+                            </h3>
+                            <div class="filter-grid">
+                                <div class="filter-item">
+                                    <label for="filterStatus">Status</label>
+                                    <select id="filterStatus" class="form-control">
+                                        <option value="all">All Status</option>
+                                        <option value="active">Active Only</option>
+                                        <option value="inactive">Inactive Only</option>
+                                    </select>
+                                </div>
+                                <div class="filter-item">
+                                    <label for="filterType">Content Type</label>
+                                    <select id="filterType" class="form-control">
+                                        <option value="all">All Types</option>
+                                        <option value="text">Text</option>
+                                        <option value="image">Image</option>
+                                        <option value="video">Video</option>
+                                        <option value="audio">Audio</option>
+                                        <option value="file">File</option>
+                                    </select>
+                                </div>
+                                <div class="filter-item">
+                                    <label for="filterViews">View Count</label>
+                                    <select id="filterViews" class="form-control">
+                                        <option value="all">All Views</option>
+                                        <option value="0">Not Viewed (0)</option>
+                                        <option value="1-5">1-5 Views</option>
+                                        <option value="6-20">6-20 Views</option>
+                                        <option value="20+">20+ Views</option>
+                                    </select>
+                                </div>
+                                <div class="filter-item">
+                                    <label for="filterDateFrom">Date From</label>
+                                    <input type="date" id="filterDateFrom" class="form-control">
+                                </div>
+                                <div class="filter-item">
+                                    <label for="filterDateTo">Date To</label>
+                                    <input type="date" id="filterDateTo" class="form-control">
+                                </div>
+                                <div class="filter-item">
+                                    <label for="filterSearch">Search</label>
+                                    <input type="text" id="filterSearch" class="form-control" placeholder="Search filename or receiver...">
+                                </div>
+                            </div>
+                            <div style="display: flex; gap: 10px; margin-top: 1rem;">
+                                <button onclick="applySharedFilters()" class="btn btn-primary">
+                                    <i class="fas fa-search"></i> Apply Filters
+                                </button>
+                                <button onclick="resetSharedFilters()" class="btn btn-secondary">
+                                    <i class="fas fa-redo"></i> Reset
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div id="sharedContentList"></div>
+                </section>
+
+                <!-- Profile Section -->
+                <section id="profileSection" class="content-section">
+                    <h2 class="section-title"><i class="fas fa-user"></i> My Profile</h2>
+                    
+                    <!-- Profile Header Card -->
+                    <div class="card">
+                        <div class="card-body">
+                            <div class="profile-header-section">
+                                <div class="profile-picture-container">
+                                    <div class="profile-avatar-large" id="profileAvatarLarge">
+                                        <img id="profilePictureImg" class="hidden" alt="Profile">
+                                        <span id="profileAvatarText">U</span>
+                                    </div>
+                                    <button class="btn btn-secondary btn-sm change-picture-btn" onclick="document.getElementById('profilePictureInput').click()">
+                                        <i class="fas fa-camera"></i> Change Picture
+                                    </button>
+                                    <input type="file" id="profilePictureInput" class="hidden" accept="image/*">
+                                </div>
+                                <div class="profile-info-section">
+                                    <h3 id="profileName">User</h3>
+                                    <p id="profileEmail" class="text-muted">user@email.com</p>
+                                    <p id="profilePhone" class="text-muted"></p>
+                                    <div class="profile-stats-inline">
+                                        <div class="stat-inline">
+                                            <i class="fas fa-users"></i>
+                                            <span id="profileFriendsCount">0</span> Friends
+                                        </div>
+                                        <div class="stat-inline">
+                                            <i class="fas fa-qrcode"></i>
+                                            <span id="profileSharesCount">0</span> Shares
+                                        </div>
+                                        <div class="stat-inline">
+                                            <i class="fas fa-camera"></i>
+                                            <span id="profileScansCount">0</span> Scans
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Bio and Status Card -->
+                    <div class="card">
+                        <div class="card-header">
+                            <h3 class="card-title"><i class="fas fa-info-circle"></i> About Me</h3>
+                        </div>
+                        <div class="card-body">
+                            <div class="form-group">
+                                <label class="form-label">Status</label>
+                                <input type="text" id="profileStatus" class="form-input" placeholder="What's on your mind?" maxlength="100">
+                                <small class="text-muted">Max 100 characters</small>
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label">Bio</label>
+                                <textarea id="profileBio" class="form-textarea" placeholder="Tell us about yourself..." maxlength="500" rows="4"></textarea>
+                                <small class="text-muted">Max 500 characters</small>
+                            </div>
+                            <button id="updateBioBtn" class="btn btn-primary">
+                                <i class="fas fa-save"></i> Save Changes
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Privacy Settings Card -->
+                    <div class="card">
+                        <div class="card-header">
+                            <h3 class="card-title"><i class="fas fa-shield-alt"></i> Privacy Settings</h3>
+                        </div>
+                        <div class="card-body">
+                            <div class="form-group">
+                                <label class="form-label">Profile Visibility</label>
+                                <select id="profilePrivacy" class="form-select">
+                                    <option value="public">Public - Anyone can see my profile</option>
+                                    <option value="friends_only">Friends Only - Only friends can see my profile</option>
+                                    <option value="private">Private - Only I can see my full profile</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label">
+                                    <input type="checkbox" id="allowFriendRequests" checked>
+                                    Allow friend requests
+                                </label>
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label">
+                                    <input type="checkbox" id="showOnlineStatus" checked>
+                                    Show online status
+                                </label>
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label">
+                                    <input type="checkbox" id="enableNotifications" checked>
+                                    Enable notifications
+                                </label>
+                            </div>
+                            <button id="updatePrivacyBtn" class="btn btn-primary">
+                                <i class="fas fa-save"></i> Save Privacy Settings
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Theme Settings Card -->
+                    <div class="card">
+                        <div class="card-header">
+                            <h3 class="card-title"><i class="fas fa-palette"></i> Appearance</h3>
+                        </div>
+                        <div class="card-body">
+                            <div class="form-group">
+                                <label class="form-label">Theme</label>
+                                <select id="profileTheme" class="form-select">
+                                    <option value="dark">Dark Mode</option>
+                                    <option value="light">Light Mode</option>
+                                </select>
+                            </div>
+                            <button id="updateThemeBtn" class="btn btn-primary">
+                                <i class="fas fa-save"></i> Save Theme
+                            </button>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- Settings Section -->
+                <section id="settingsSection" class="content-section">
+                    <h2 class="section-title"><i class="fas fa-cog"></i> Settings</h2>
+                    
+                    <!-- Account Settings -->
+                    <div class="card" style="margin-bottom: 1.5rem;">
+                        <div class="card-header">
+                            <h3 class="card-title"><i class="fas fa-user-cog"></i> Account Settings</h3>
+                        </div>
+                        <div class="card-body">
+                            <div class="form-group">
+                                <label class="form-label">Username</label>
+                                <input type="text" id="settingsUsername" class="form-input" readonly>
+                                <small class="text-muted">Username cannot be changed</small>
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label">Email</label>
+                                <input type="email" id="settingsEmail" class="form-input">
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label">Phone Number</label>
+                                <input type="tel" id="settingsPhone" class="form-input" placeholder="+1234567890">
+                            </div>
+                            <button id="updateAccountBtn" class="btn btn-primary">
+                                <i class="fas fa-save"></i> Update Account
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Security Settings -->
+                    <div class="card" style="margin-bottom: 1.5rem;">
+                        <div class="card-header">
+                            <h3 class="card-title"><i class="fas fa-shield-alt"></i> Security</h3>
+                        </div>
+                        <div class="card-body">
+                            <div class="form-group">
+                                <label class="form-label">Current Password</label>
+                                <input type="password" id="currentPassword" class="form-input" placeholder="Enter current password">
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label">New Password</label>
+                                <input type="password" id="newPassword" class="form-input" placeholder="Enter new password">
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label">Confirm New Password</label>
+                                <input type="password" id="confirmPassword" class="form-input" placeholder="Confirm new password">
+                            </div>
+                            <button id="changePasswordBtn" class="btn btn-primary">
+                                <i class="fas fa-key"></i> Change Password
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- QR Code Defaults -->
+                    <div class="card" style="margin-bottom: 1.5rem;">
+                        <div class="card-header">
+                            <h3 class="card-title"><i class="fas fa-qrcode"></i> QR Code Defaults</h3>
+                        </div>
+                        <div class="card-body">
+                            <div class="form-group">
+                                <label class="form-label">Default Encryption Level</label>
+                                <select id="defaultEncryption" class="form-select">
+                                    <option value="basic">Basic (AES-128) - Fast</option>
+                                    <option value="standard" selected>Standard (AES-192) - Recommended</option>
+                                    <option value="high">High (AES-256) - Strong</option>
+                                    <option value="maximum">Maximum (AES-256 + RSA-4096) - Military Grade</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label">Default Expiration Time</label>
+                                <select id="defaultExpiration" class="form-select">
+                                    <option value="0">Never Expire</option>
+                                    <option value="3600">1 Hour</option>
+                                    <option value="86400">24 Hours</option>
+                                    <option value="604800">7 Days</option>
+                                    <option value="2592000">30 Days</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label">
+                                    <input type="checkbox" id="autoDeleteExpired">
+                                    Auto-delete expired QR codes
+                                </label>
+                                <small class="text-muted" style="display: block; margin-top: 0.5rem;">
+                                    Automatically remove QR codes after they expire
+                                </small>
+                            </div>
+                            <button id="updateQRDefaultsBtn" class="btn btn-primary">
+                                <i class="fas fa-save"></i> Save QR Defaults
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Notification Settings -->
+                    <div class="card" style="margin-bottom: 1.5rem;">
+                        <div class="card-header">
+                            <h3 class="card-title"><i class="fas fa-bell"></i> Notifications</h3>
+                        </div>
+                        <div class="card-body">
+                            <div class="form-group">
+                                <label class="form-label">
+                                    <input type="checkbox" id="notifyNewContent" checked>
+                                    Notify when receiving new content
+                                </label>
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label">
+                                    <input type="checkbox" id="notifyQRScanned" checked>
+                                    Notify when someone scans my QR code
+                                </label>
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label">
+                                    <input type="checkbox" id="notifyFriendRequest" checked>
+                                    Notify on friend requests
+                                </label>
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label">
+                                    <input type="checkbox" id="emailNotifications">
+                                    Enable email notifications
+                                </label>
+                            </div>
+                            <button id="updateNotificationsBtn" class="btn btn-primary">
+                                <i class="fas fa-save"></i> Save Notification Settings
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Storage Management -->
+                    <div class="card" style="margin-bottom: 1.5rem;">
+                        <div class="card-header">
+                            <h3 class="card-title"><i class="fas fa-database"></i> Storage</h3>
+                        </div>
+                        <div class="card-body">
+                            <div class="storage-info" style="margin-bottom: 1.5rem;">
+                                <div style="display: flex; justify-content: space-between; margin-bottom: 0.5rem;">
+                                    <span>Storage Used:</span>
+                                    <span id="storageUsed">0 MB / 100 MB</span>
+                                </div>
+                                <div style="background: rgba(255,255,255,0.1); border-radius: 0.5rem; height: 1rem; overflow: hidden;">
+                                    <div id="storageBar" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); height: 100%; width: 0%; transition: width 0.3s;"></div>
+                                </div>
+                            </div>
+                            <div class="form-group">
+                                <button id="clearExpiredBtn" class="btn btn-outline" style="width: 100%; margin-bottom: 0.5rem;">
+                                    <i class="fas fa-trash-alt"></i> Clear Expired Content
+                                </button>
+                                <button id="clearInactiveBtn" class="btn btn-outline" style="width: 100%;">
+                                    <i class="fas fa-trash"></i> Clear All Inactive QR Codes
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Danger Zone -->
+                    <div class="card" style="border: 2px solid #ff4757;">
+                        <div class="card-header" style="background: rgba(255, 71, 87, 0.1);">
+                            <h3 class="card-title"><i class="fas fa-exclamation-triangle"></i> Danger Zone</h3>
+                        </div>
+                        <div class="card-body">
+                            <p class="text-muted" style="margin-bottom: 1rem;">
+                                These actions are permanent and cannot be undone.
+                            </p>
+                            <button id="deleteAllQRBtn" class="btn btn-danger" style="width: 100%; margin-bottom: 0.5rem;">
+                                <i class="fas fa-trash-alt"></i> Delete All QR Codes
+                            </button>
+                            <button id="deleteAccountBtn" class="btn btn-danger" style="width: 100%;">
+                                <i class="fas fa-user-times"></i> Delete Account
+                            </button>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- Received Section -->
+                <section id="receivedSection" class="content-section">
+                    <h2 class="section-title"><i class="fas fa-inbox"></i> Received Content</h2>
+                    <div id="receivedList" class="content-grid">
+                        <div class="card">
+                            <p class="text-muted text-center">No content received yet</p>
+                        </div>
+                    </div>
+                </section>
+            </div>
+
+            <!-- Right Sidebar -->
+            <aside class="right-sidebar">
+                <div class="sidebar-section">
+                    <h3>Recent Activity</h3>
+                    <div class="activity-feed">
+                        <div class="activity-item">
+                            <i class="fas fa-qrcode"></i>
+                            <div>
+                                <p>Generated QR code for secret message</p>
+                                <span class="time">10 minutes ago</span>
+                            </div>
+                        </div>
+                        <div class="activity-item">
+                            <i class="fas fa-user-plus"></i>
+                            <div>
+                                <p>Friend request accepted by Jane</p>
+                                <span class="time">2 hours ago</span>
+                            </div>
+                        </div>
+                        <div class="activity-item">
+                            <i class="fas fa-shield-alt"></i>
+                            <div>
+                                <p>Encrypted PDF file for sharing</p>
+                                <span class="time">1 day ago</span>
+                            </div>
+                        </div>
+                        <div class="activity-item">
+                            <i class="fas fa-download"></i>
+                            <div>
+                                <p>Downloaded file from QR scan</p>
+                                <span class="time">2 days ago</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="sidebar-section">
+                    <h3>Quick Stats</h3>
+                    <div class="quick-stats">
+                        <div class="quick-stat">
+                            <span>Active QR Codes</span>
+                            <strong>12</strong>
+                        </div>
+                        <div class="quick-stat">
+                            <span>Scanned Today</span>
+                            <strong>3</strong>
+                        </div>
+                        <div class="quick-stat">
+                            <span>Storage Used</span>
+                            <strong>2.3 GB</strong>
+                        </div>
+                    </div>
+                </div>
+            </aside>
+        </main>
+    </div>
+
+    <!-- QR Code Modal -->
+    <div id="qrModal" class="modal hidden">
+        <div class="modal-overlay" onclick="closeQRModal()"></div>
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 id="modalQrCodeTitle"><i class="fas fa-qrcode"></i> Your QR Code</h3>
+                <button class="modal-close" onclick="closeQRModal()">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <div class="modal-body">
+                <div id="modalEncryptionInfo" class="encryption-info hidden">
+                    <div class="encryption-badge">
+                        <i class="fas fa-shield-alt"></i>
+                        <span id="encryptionLevelText">Standard Encryption</span>
+                    </div>
+                </div>
+                <div id="modalQrCodeImage" class="qr-image-modal"></div>
+                <p class="text-muted text-center" style="margin-top: 1rem;">
+                    Share this QR code to allow others to access your encrypted content
+                </p>
+            </div>
+            <div class="modal-footer">
+                <button id="modalDownloadQrBtn" class="btn btn-primary" onclick="downloadQRCode()">
+                    <i class="fas fa-download"></i> Download QR Code
+                </button>
+                <button class="btn btn-secondary" onclick="closeQRModal()">
+                    <i class="fas fa-times"></i> Close
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Load Scripts -->
+    <script src="https://cdn.socket.io/4.5.0/socket.io.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.js"></script>
+    <script src="scripts/auth-helpers.js?v=3"></script>
+    <script src="scripts/app.js?v=19"></script>
+    <script src="scripts/auth.js?v=3"></script>
+    <script src="scripts/encryption.js?v=3"></script>
+    <script src="scripts/friends.js?v=3"></script>
+    <script src="scripts/qr.js?v=4"></script>
+    <script src="scripts/activity.js?v=4"></script>
+    <script src="scripts/profile.js?v=6"></script>
+    <script src="scripts/files.js?v=3"></script>
+    <script src="scripts/settings.js?v=1"></script>
+    <script src="scripts/notifications.js?v=3"></script>
+
+    <script>
+        // QR Modal helper functions
+        function showQRModal() {
+            document.getElementById('qrModal').classList.remove('hidden');
+            document.body.style.overflow = 'hidden';
+        }
+
+        function closeQRModal() {
+            document.getElementById('qrModal').classList.add('hidden');
+            document.body.style.overflow = 'auto';
+        }
+
+        // Close modal on ESC key
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape') {
+                const modal = document.getElementById('qrModal');
+                if (modal && !modal.classList.contains('hidden')) {
+                    closeQRModal();
+                }
+            }
+        });
+
+        // Make these available globally
+        window.showQRModal = showQRModal;
+        window.closeQRModal = closeQRModal;
+
+        // Navigation helper
+        function showSection(section) {
+            // Hide all sections
+            document.querySelectorAll('.content-section').forEach(s => s.classList.remove('active'));
+            
+            // Remove active from all nav links
+            document.querySelectorAll('.nav-link, .sidebar-link').forEach(l => l.classList.remove('active'));
+            
+            // Show selected section
+            const sectionElement = document.getElementById(section + 'Section');
+            if (sectionElement) {
+                sectionElement.classList.add('active');
+            }
+            
+            // Add active to corresponding links
+            document.querySelectorAll(`[data-section="${section}"]`).forEach(l => l.classList.add('active'));
+        }
+
+        // Add click handlers to navigation
+        document.addEventListener('DOMContentLoaded', () => {
+            document.querySelectorAll('.nav-link, .sidebar-link').forEach(link => {
+                link.addEventListener('click', (e) => {
+                    const section = link.dataset.section;
+                    if (section) {
+                        e.preventDefault();
+                        showSection(section);
+                    }
+                });
+            });
+        });
+    </script>
+</body>
+</html>

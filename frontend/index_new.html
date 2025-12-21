@@ -1,0 +1,510 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Hide Anything with QR - Secure Sharing</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="styles/modern.css">
+</head>
+<body>
+    <!-- Authentication Section -->
+    <div id="authSection" class="auth-section">
+        <div class="auth-card">
+            <div class="auth-title">
+                <i class="fas fa-qrcode"></i> Hide Anything with QR
+            </div>
+            
+            <!-- Login Form -->
+            <form id="loginForm" class="auth-form">
+                <h2>Login</h2>
+                <div class="form-group">
+                    <label class="form-label">Email</label>
+                    <input type="email" id="loginEmail" class="form-input" placeholder="Enter your email" required>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Password</label>
+                    <input type="password" id="loginPassword" class="form-input" placeholder="Enter your password" required>
+                </div>
+                <button type="submit" class="btn btn-primary btn-block">
+                    <i class="fas fa-sign-in-alt"></i> Login
+                </button>
+                <p class="auth-switch">
+                    Don't have an account? <a href="#" onclick="showRegister(); return false;">Register</a>
+                </p>
+            </form>
+
+            <!-- Register Form -->
+            <form id="registerForm" class="auth-form hidden">
+                <h2>Register</h2>
+                <div class="form-group">
+                    <label class="form-label">Username</label>
+                    <input type="text" id="registerUsername" class="form-input" placeholder="Choose a username" required>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Email</label>
+                    <input type="email" id="registerEmail" class="form-input" placeholder="Enter your email" required>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Password</label>
+                    <input type="password" id="registerPassword" class="form-input" placeholder="Choose a password (min 8 chars)" required>
+                </div>
+                <button type="submit" class="btn btn-primary btn-block">
+                    <i class="fas fa-user-plus"></i> Register
+                </button>
+                <p class="auth-switch">
+                    Already have an account? <a href="#" onclick="showLoginForm(); return false;">Login</a>
+                </p>
+            </form>
+        </div>
+    </div>
+
+    <!-- Main Application Container -->
+    <div id="appContainer" class="app-container hidden">
+        <!-- Header -->
+        <header class="app-header">
+            <div class="logo">
+                <i class="fas fa-qrcode"></i>
+                <h1>HideAnything<span class="logo-accent">.QR</span></h1>
+            </div>
+            
+            <nav class="top-nav">
+                <a href="#" class="nav-link active" data-section="dashboard">
+                    <i class="fas fa-home"></i> Dashboard
+                </a>
+                <a href="#" class="nav-link" data-section="scan">
+                    <i class="fas fa-camera"></i> Scan QR
+                </a>
+                <a href="#" class="nav-link" data-section="generate">
+                    <i class="fas fa-qrcode"></i> Generate QR
+                </a>
+                <a href="#" class="nav-link" data-section="friends">
+                    <i class="fas fa-users"></i> Friends
+                </a>
+                <a href="#" class="nav-link" data-section="profile">
+                    <i class="fas fa-user"></i> Profile
+                </a>
+            </nav>
+            
+            <div class="user-menu">
+                <button class="notification-btn" id="notificationBtn">
+                    <i class="fas fa-bell"></i>
+                    <span class="notification-count">3</span>
+                </button>
+                <div class="user-avatar" id="userAvatar">U</div>
+            </div>
+        </header>
+
+        <!-- Main Content -->
+        <main class="main-content">
+            <!-- Left Sidebar -->
+            <aside class="left-sidebar">
+                <ul class="sidebar-menu">
+                    <li class="sidebar-item">
+                        <a href="#" class="sidebar-link active" data-section="dashboard">
+                            <i class="fas fa-home"></i> Dashboard
+                        </a>
+                    </li>
+                    <li class="sidebar-item">
+                        <a href="#" class="sidebar-link" data-section="scan">
+                            <i class="fas fa-camera"></i> Scan QR
+                        </a>
+                    </li>
+                    <li class="sidebar-item">
+                        <a href="#" class="sidebar-link" data-section="generate">
+                            <i class="fas fa-qrcode"></i> Generate QR
+                        </a>
+                    </li>
+                    <li class="sidebar-item">
+                        <a href="#" class="sidebar-link" data-section="files">
+                            <i class="fas fa-folder"></i> My Files
+                        </a>
+                    </li>
+                    <li class="sidebar-item">
+                        <a href="#" class="sidebar-link" data-section="friends">
+                            <i class="fas fa-users"></i> Friends
+                        </a>
+                    </li>
+                    <li class="sidebar-item">
+                        <a href="#" class="sidebar-link" data-section="shared">
+                            <i class="fas fa-share-alt"></i> Shared
+                        </a>
+                    </li>
+                    <li class="sidebar-item">
+                        <a href="#" class="sidebar-link" data-section="profile">
+                            <i class="fas fa-user"></i> Profile
+                        </a>
+                    </li>
+                    <li class="sidebar-item">
+                        <a href="#" class="sidebar-link" data-section="settings">
+                            <i class="fas fa-cog"></i> Settings
+                        </a>
+                    </li>
+                    <li class="sidebar-item">
+                        <a href="#" class="sidebar-link" onclick="logout(); return false;">
+                            <i class="fas fa-sign-out-alt"></i> Logout
+                        </a>
+                    </li>
+                </ul>
+            </aside>
+
+            <!-- Content Area -->
+            <div class="content-wrapper">
+                <!-- Dashboard -->
+                <section id="dashboardSection" class="content-section active">
+                    <h2 class="section-title">Dashboard</h2>
+                    
+                    <div class="stats-grid">
+                        <div class="stat-card">
+                            <div class="stat-icon">
+                                <i class="fas fa-qrcode"></i>
+                            </div>
+                            <div class="stat-content">
+                                <h3>QR Codes Generated</h3>
+                                <div class="stat-number" id="qrCount">24</div>
+                            </div>
+                        </div>
+                        
+                        <div class="stat-card">
+                            <div class="stat-icon">
+                                <i class="fas fa-users"></i>
+                            </div>
+                            <div class="stat-content">
+                                <h3>Friends</h3>
+                                <div class="stat-number" id="friendCount">8</div>
+                            </div>
+                        </div>
+                        
+                        <div class="stat-card">
+                            <div class="stat-icon">
+                                <i class="fas fa-shield-alt"></i>
+                            </div>
+                            <div class="stat-content">
+                                <h3>Files Encrypted</h3>
+                                <div class="stat-number" id="fileCount">42</div>
+                            </div>
+                        </div>
+                        
+                        <div class="stat-card">
+                            <div class="stat-icon">
+                                <i class="fas fa-clock"></i>
+                            </div>
+                            <div class="stat-content">
+                                <h3>Last Activity</h3>
+                                <div class="stat-number" style="font-size: 1.5rem;">2h ago</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="quick-actions">
+                        <h3>Quick Actions</h3>
+                        <div class="action-buttons">
+                            <button class="btn btn-primary" onclick="showSection('generate')">
+                                <i class="fas fa-plus"></i> New QR
+                            </button>
+                            <button class="btn btn-success" onclick="showSection('scan')">
+                                <i class="fas fa-camera"></i> Scan QR
+                            </button>
+                            <button class="btn btn-secondary" onclick="showSection('friends')">
+                                <i class="fas fa-user-plus"></i> Add Friend
+                            </button>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- Scan QR Section -->
+                <section id="scanSection" class="content-section">
+                    <h2 class="section-title"><i class="fas fa-camera"></i> Scan QR Code</h2>
+                    
+                    <!-- Camera Scan Card -->
+                    <div class="card">
+                        <div class="card-header">
+                            <h3 class="card-title"><i class="fas fa-camera"></i> Scan with Camera</h3>
+                        </div>
+                        <div class="card-body text-center">
+                            <video id="scannerVideo" class="scanner-video hidden"></video>
+                            <button id="startCameraBtn" onclick="startQRScanner()" class="btn btn-primary">
+                                <i class="fas fa-camera"></i> Start Camera
+                            </button>
+                            <button id="stopCameraBtn" onclick="stopQRScanner()" class="btn btn-secondary hidden">
+                                <i class="fas fa-stop"></i> Stop Camera
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Upload QR Image Card -->
+                    <div class="card">
+                        <div class="card-header">
+                            <h3 class="card-title"><i class="fas fa-upload"></i> Upload QR Code Image</h3>
+                        </div>
+                        <div class="card-body">
+                            <div class="form-group">
+                                <label class="form-label">Select QR Code Image</label>
+                                <input type="file" id="qrImageInput" class="form-input" accept="image/*">
+                            </div>
+                            <button id="decodeQrImageBtn" class="btn btn-primary">
+                                <i class="fas fa-qrcode"></i> Decode QR Code
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Scan Result Card -->
+                    <div id="scanResultCard" class="card hidden">
+                        <div class="card-header">
+                            <h3 class="card-title"><i class="fas fa-check-circle"></i> Decrypted Content</h3>
+                        </div>
+                        <div class="card-body">
+                            <div id="scanResult"></div>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- Generate QR Section -->
+                <section id="generateSection" class="content-section">
+                    <h2 class="section-title"><i class="fas fa-qrcode"></i> Generate QR Code</h2>
+                    
+                    <div class="card">
+                        <div class="card-header">
+                            <h3 class="card-title">Share Text</h3>
+                        </div>
+                        <div class="card-body">
+                            <div class="form-group">
+                                <label class="form-label">Message</label>
+                                <textarea id="shareTextInput" class="form-textarea" placeholder="Enter your secret message..."></textarea>
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label">Share with (optional)</label>
+                                <select id="shareReceiver" class="form-select">
+                                    <option value="">Public (anyone with QR code)</option>
+                                </select>
+                            </div>
+                            <button id="shareTextBtn" class="btn btn-primary">
+                                <i class="fas fa-qrcode"></i> Generate QR Code
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="card">
+                        <div class="card-header">
+                            <h3 class="card-title">Share File</h3>
+                        </div>
+                        <div class="card-body">
+                            <div class="form-group">
+                                <label class="form-label">Select File</label>
+                                <input type="file" id="fileInput" class="form-input">
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label">Share with (optional)</label>
+                                <select id="fileReceiver" class="form-select">
+                                    <option value="">Public (anyone with QR code)</option>
+                                </select>
+                            </div>
+                            <button id="uploadFileBtn" class="btn btn-primary">
+                                <i class="fas fa-qrcode"></i> Generate QR Code
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- QR Code Display Card -->
+                    <div id="qrCodeContainer" class="card hidden">
+                        <div class="card-header">
+                            <h3 class="card-title"><i class="fas fa-qrcode"></i> Your QR Code</h3>
+                        </div>
+                        <div class="card-body text-center">
+                            <div id="qrCodeImage" class="qr-image"></div>
+                            <p class="text-muted">
+                                Share this QR code to allow others to access your encrypted content
+                            </p>
+                            <button id="downloadQrBtn" class="btn btn-secondary hidden">
+                                <i class="fas fa-download"></i> Download QR Code
+                            </button>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- Friends Section -->
+                <section id="friendsSection" class="content-section">
+                    <h2 class="section-title"><i class="fas fa-users"></i> Friends</h2>
+                    
+                    <div class="card">
+                        <div class="card-header">
+                            <h3 class="card-title">Search Users</h3>
+                        </div>
+                        <div class="card-body">
+                            <div class="form-group">
+                                <input type="text" id="searchUsersInput" class="form-input" placeholder="Search by username or email...">
+                            </div>
+                            <div id="searchResults"></div>
+                        </div>
+                    </div>
+
+                    <div class="card">
+                        <div class="card-header">
+                            <h3 class="card-title">My Friends</h3>
+                        </div>
+                        <div class="card-body">
+                            <div id="friendsList">
+                                <p class="text-muted text-center">No friends yet</p>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- Files Section -->
+                <section id="filesSection" class="content-section">
+                    <h2 class="section-title"><i class="fas fa-folder"></i> My Files</h2>
+                    <div class="card">
+                        <div class="card-body">
+                            <p class="text-muted text-center">No files uploaded yet</p>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- Shared Section -->
+                <section id="sharedSection" class="content-section">
+                    <h2 class="section-title"><i class="fas fa-share-alt"></i> Shared Content</h2>
+                    <div class="card">
+                        <div class="card-body">
+                            <p class="text-muted text-center">No shared content yet</p>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- Profile Section -->
+                <section id="profileSection" class="content-section">
+                    <h2 class="section-title"><i class="fas fa-user"></i> My Profile</h2>
+                    <div class="card">
+                        <div class="card-body">
+                            <div class="profile-header">
+                                <div class="profile-avatar-large" id="profileAvatarLarge">U</div>
+                                <div class="profile-info">
+                                    <h3 id="profileName">User</h3>
+                                    <p id="profileEmail" class="text-muted">user@email.com</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- Settings Section -->
+                <section id="settingsSection" class="content-section">
+                    <h2 class="section-title"><i class="fas fa-cog"></i> Settings</h2>
+                    <div class="card">
+                        <div class="card-body">
+                            <p class="text-muted text-center">Settings coming soon...</p>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- Received Section -->
+                <section id="receivedSection" class="content-section">
+                    <h2 class="section-title"><i class="fas fa-inbox"></i> Received Content</h2>
+                    <div id="receivedList" class="content-grid">
+                        <div class="card">
+                            <p class="text-muted text-center">No content received yet</p>
+                        </div>
+                    </div>
+                </section>
+            </div>
+
+            <!-- Right Sidebar -->
+            <aside class="right-sidebar">
+                <div class="sidebar-section">
+                    <h3>Recent Activity</h3>
+                    <div class="activity-feed">
+                        <div class="activity-item">
+                            <i class="fas fa-qrcode"></i>
+                            <div>
+                                <p>Generated QR code for secret message</p>
+                                <span class="time">10 minutes ago</span>
+                            </div>
+                        </div>
+                        <div class="activity-item">
+                            <i class="fas fa-user-plus"></i>
+                            <div>
+                                <p>Friend request accepted by Jane</p>
+                                <span class="time">2 hours ago</span>
+                            </div>
+                        </div>
+                        <div class="activity-item">
+                            <i class="fas fa-shield-alt"></i>
+                            <div>
+                                <p>Encrypted PDF file for sharing</p>
+                                <span class="time">1 day ago</span>
+                            </div>
+                        </div>
+                        <div class="activity-item">
+                            <i class="fas fa-download"></i>
+                            <div>
+                                <p>Downloaded file from QR scan</p>
+                                <span class="time">2 days ago</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="sidebar-section">
+                    <h3>Quick Stats</h3>
+                    <div class="quick-stats">
+                        <div class="quick-stat">
+                            <span>Active QR Codes</span>
+                            <strong>12</strong>
+                        </div>
+                        <div class="quick-stat">
+                            <span>Scanned Today</span>
+                            <strong>3</strong>
+                        </div>
+                        <div class="quick-stat">
+                            <span>Storage Used</span>
+                            <strong>2.3 GB</strong>
+                        </div>
+                    </div>
+                </div>
+            </aside>
+        </main>
+    </div>
+
+    <!-- Load Scripts -->
+    <script src="https://cdn.socket.io/4.5.0/socket.io.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.js"></script>
+    <script src="scripts/app.js"></script>
+    <script src="scripts/auth.js"></script>
+    <script src="scripts/encryption.js"></script>
+    <script src="scripts/friends.js"></script>
+    <script src="scripts/qr.js"></script>
+
+    <script>
+        // Navigation helper
+        function showSection(section) {
+            // Hide all sections
+            document.querySelectorAll('.content-section').forEach(s => s.classList.remove('active'));
+            
+            // Remove active from all nav links
+            document.querySelectorAll('.nav-link, .sidebar-link').forEach(l => l.classList.remove('active'));
+            
+            // Show selected section
+            const sectionElement = document.getElementById(section + 'Section');
+            if (sectionElement) {
+                sectionElement.classList.add('active');
+            }
+            
+            // Add active to corresponding links
+            document.querySelectorAll(`[data-section="${section}"]`).forEach(l => l.classList.add('active'));
+        }
+
+        // Add click handlers to navigation
+        document.addEventListener('DOMContentLoaded', () => {
+            document.querySelectorAll('.nav-link, .sidebar-link').forEach(link => {
+                link.addEventListener('click', (e) => {
+                    const section = link.dataset.section;
+                    if (section) {
+                        e.preventDefault();
+                        showSection(section);
+                    }
+                });
+            });
+        });
+    </script>
+</body>
+</html>

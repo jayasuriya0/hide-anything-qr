@@ -1,0 +1,1399 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Hide Anything with QR - Secure Sharing</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&family=Roboto+Mono:wght@400;500&display=swap">
+    <script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.3/build/qrcode.min.js"></script>
+    <style>
+        :root {
+            --primary: #4361ee;
+            --primary-dark: #3a56d4;
+            --secondary: #7209b7;
+            --success: #4cc9f0;
+            --danger: #f72585;
+            --warning: #f8961e;
+            --dark: #1a1a2e;
+            --light: #f8f9fa;
+            --gray: #6c757d;
+            --gray-light: #e9ecef;
+            --border-radius: 12px;
+            --box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+            --transition: all 0.3s ease;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Poppins', sans-serif;
+            background: linear-gradient(135deg, #0f0c29, #302b63, #24243e);
+            color: var(--light);
+            min-height: 100vh;
+            line-height: 1.6;
+        }
+
+        .app-container {
+            display: flex;
+            flex-direction: column;
+            min-height: 100vh;
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        /* Header Styles */
+        header {
+            background: rgba(26, 26, 46, 0.9);
+            backdrop-filter: blur(10px);
+            padding: 1rem 2rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+            position: sticky;
+            top: 0;
+            z-index: 1000;
+        }
+
+        .logo {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+
+        .logo i {
+            color: var(--success);
+            font-size: 2rem;
+        }
+
+        .logo h1 {
+            font-size: 1.5rem;
+            background: linear-gradient(to right, var(--primary), var(--success));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        nav ul {
+            display: flex;
+            list-style: none;
+            gap: 2rem;
+        }
+
+        nav a {
+            color: var(--light);
+            text-decoration: none;
+            font-weight: 500;
+            padding: 0.5rem 1rem;
+            border-radius: var(--border-radius);
+            transition: var(--transition);
+        }
+
+        nav a:hover, nav a.active {
+            background: rgba(67, 97, 238, 0.2);
+            color: var(--success);
+        }
+
+        .user-menu {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+
+        .notification-btn {
+            position: relative;
+            background: none;
+            border: none;
+            color: var(--light);
+            font-size: 1.2rem;
+            cursor: pointer;
+            padding: 0.5rem;
+        }
+
+        .notification-count {
+            position: absolute;
+            top: -5px;
+            right: -5px;
+            background: var(--danger);
+            color: white;
+            font-size: 0.7rem;
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .user-avatar {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            background: linear-gradient(45deg, var(--primary), var(--secondary));
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            cursor: pointer;
+        }
+
+        /* Main Content */
+        main {
+            flex: 1;
+            padding: 2rem;
+            display: grid;
+            grid-template-columns: 250px 1fr 300px;
+            gap: 2rem;
+        }
+
+        /* Sidebar */
+        .sidebar {
+            background: rgba(26, 26, 46, 0.8);
+            border-radius: var(--border-radius);
+            padding: 1.5rem;
+            height: fit-content;
+        }
+
+        .sidebar-menu {
+            list-style: none;
+        }
+
+        .sidebar-menu li {
+            margin-bottom: 0.5rem;
+        }
+
+        .sidebar-menu a {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            padding: 1rem;
+            color: var(--light);
+            text-decoration: none;
+            border-radius: var(--border-radius);
+            transition: var(--transition);
+        }
+
+        .sidebar-menu a:hover, .sidebar-menu a.active {
+            background: rgba(67, 97, 238, 0.2);
+            color: var(--success);
+        }
+
+        .sidebar-menu i {
+            width: 20px;
+            text-align: center;
+        }
+
+        /* Content Area */
+        .content-area {
+            display: none;
+        }
+
+        .content-area.active {
+            display: block;
+        }
+
+        /* Dashboard */
+        .dashboard-stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1.5rem;
+            margin-bottom: 2rem;
+        }
+
+        .stat-card {
+            background: rgba(26, 26, 46, 0.8);
+            padding: 1.5rem;
+            border-radius: var(--border-radius);
+            text-align: center;
+            transition: var(--transition);
+        }
+
+        .stat-card:hover {
+            transform: translateY(-5px);
+            box-shadow: var(--box-shadow);
+        }
+
+        .stat-card i {
+            font-size: 2rem;
+            margin-bottom: 1rem;
+            color: var(--success);
+        }
+
+        .stat-card h3 {
+            font-size: 1.2rem;
+            margin-bottom: 0.5rem;
+        }
+
+        .stat-card .count {
+            font-size: 2rem;
+            font-weight: bold;
+            color: var(--primary);
+        }
+
+        /* QR Scanner */
+        .scanner-container {
+            background: rgba(26, 26, 46, 0.8);
+            border-radius: var(--border-radius);
+            padding: 2rem;
+            text-align: center;
+        }
+
+        #scanner-video {
+            width: 100%;
+            max-width: 500px;
+            height: 300px;
+            background: #000;
+            border-radius: var(--border-radius);
+            margin: 1rem auto;
+        }
+
+        .scanner-overlay {
+            position: relative;
+            width: 100%;
+            max-width: 500px;
+            margin: 0 auto;
+        }
+
+        .scanner-frame {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 250px;
+            height: 250px;
+            border: 3px solid var(--success);
+            border-radius: 10px;
+        }
+
+        /* QR Generator */
+        .qr-generator {
+            background: rgba(26, 26, 46, 0.8);
+            border-radius: var(--border-radius);
+            padding: 2rem;
+        }
+
+        .qr-input-group {
+            margin-bottom: 1.5rem;
+        }
+
+        .qr-input-group label {
+            display: block;
+            margin-bottom: 0.5rem;
+            color: var(--success);
+        }
+
+        .qr-input-group input,
+        .qr-input-group textarea,
+        .qr-input-group select {
+            width: 100%;
+            padding: 0.8rem;
+            background: rgba(255, 255, 255, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: var(--border-radius);
+            color: var(--light);
+            font-family: 'Roboto Mono', monospace;
+        }
+
+        .qr-input-group textarea {
+            min-height: 120px;
+            resize: vertical;
+        }
+
+        .file-upload {
+            border: 2px dashed rgba(255, 255, 255, 0.3);
+            padding: 2rem;
+            text-align: center;
+            border-radius: var(--border-radius);
+            cursor: pointer;
+            transition: var(--transition);
+        }
+
+        .file-upload:hover {
+            border-color: var(--success);
+            background: rgba(76, 201, 240, 0.1);
+        }
+
+        .qr-result {
+            display: none;
+            text-align: center;
+            margin-top: 2rem;
+        }
+
+        #qr-code {
+            margin: 1rem auto;
+            padding: 1rem;
+            background: white;
+            border-radius: var(--border-radius);
+            display: inline-block;
+        }
+
+        /* Friends List */
+        .friends-container {
+            background: rgba(26, 26, 46, 0.8);
+            border-radius: var(--border-radius);
+            padding: 2rem;
+        }
+
+        .friend-list {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+            gap: 1rem;
+            margin-top: 1rem;
+        }
+
+        .friend-card {
+            background: rgba(255, 255, 255, 0.05);
+            padding: 1rem;
+            border-radius: var(--border-radius);
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            transition: var(--transition);
+        }
+
+        .friend-card:hover {
+            background: rgba(67, 97, 238, 0.2);
+            transform: translateY(-3px);
+        }
+
+        .friend-avatar {
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            background: linear-gradient(45deg, var(--primary), var(--secondary));
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+        }
+
+        /* Profile */
+        .profile-container {
+            background: rgba(26, 26, 46, 0.8);
+            border-radius: var(--border-radius);
+            padding: 2rem;
+        }
+
+        .profile-header {
+            display: flex;
+            align-items: center;
+            gap: 2rem;
+            margin-bottom: 2rem;
+        }
+
+        .profile-avatar {
+            width: 100px;
+            height: 100px;
+            border-radius: 50%;
+            background: linear-gradient(45deg, var(--primary), var(--secondary));
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 2.5rem;
+            font-weight: bold;
+        }
+
+        /* Right Sidebar */
+        .right-sidebar {
+            background: rgba(26, 26, 46, 0.8);
+            border-radius: var(--border-radius);
+            padding: 1.5rem;
+            height: fit-content;
+        }
+
+        .activity-feed {
+            margin-top: 1.5rem;
+        }
+
+        .activity-item {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            padding: 1rem;
+            margin-bottom: 1rem;
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: var(--border-radius);
+        }
+
+        .activity-item i {
+            color: var(--success);
+        }
+
+        /* Modal */
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.8);
+            z-index: 2000;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .modal.active {
+            display: flex;
+        }
+
+        .modal-content {
+            background: var(--dark);
+            padding: 2rem;
+            border-radius: var(--border-radius);
+            max-width: 500px;
+            width: 90%;
+            max-height: 90vh;
+            overflow-y: auto;
+        }
+
+        /* Buttons */
+        .btn {
+            padding: 0.8rem 1.5rem;
+            border: none;
+            border-radius: var(--border-radius);
+            font-family: 'Poppins', sans-serif;
+            font-weight: 500;
+            cursor: pointer;
+            transition: var(--transition);
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .btn-primary {
+            background: var(--primary);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background: var(--primary-dark);
+            transform: translateY(-2px);
+        }
+
+        .btn-success {
+            background: var(--success);
+            color: var(--dark);
+        }
+
+        .btn-danger {
+            background: var(--danger);
+            color: white;
+        }
+
+        .btn-outline {
+            background: transparent;
+            border: 2px solid var(--primary);
+            color: var(--primary);
+        }
+
+        /* Utility */
+        .hidden {
+            display: none !important;
+        }
+
+        .text-center {
+            text-align: center;
+        }
+
+        .mt-1 { margin-top: 1rem; }
+        .mt-2 { margin-top: 2rem; }
+        .mb-1 { margin-bottom: 1rem; }
+        .mb-2 { margin-bottom: 2rem; }
+
+        /* Responsive */
+        @media (max-width: 1200px) {
+            main {
+                grid-template-columns: 1fr 300px;
+            }
+            .sidebar {
+                display: none;
+            }
+        }
+
+        @media (max-width: 768px) {
+            main {
+                grid-template-columns: 1fr;
+                padding: 1rem;
+            }
+            .right-sidebar {
+                display: none;
+            }
+            nav ul {
+                display: none;
+            }
+            header {
+                padding: 1rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="app-container">
+        <!-- Header -->
+        <header>
+            <div class="logo">
+                <i class="fas fa-qrcode"></i>
+                <h1>HideAnything<span style="color:var(--success)">.QR</span></h1>
+            </div>
+            
+            <nav>
+                <ul>
+                    <li><a href="#" class="nav-link active" data-page="dashboard">Dashboard</a></li>
+                    <li><a href="#" class="nav-link" data-page="scan">Scan QR</a></li>
+                    <li><a href="#" class="nav-link" data-page="generate">Generate QR</a></li>
+                    <li><a href="#" class="nav-link" data-page="friends">Friends</a></li>
+                    <li><a href="#" class="nav-link" data-page="profile">Profile</a></li>
+                </ul>
+            </nav>
+            
+            <div class="user-menu">
+                <button class="notification-btn" id="notificationBtn">
+                    <i class="fas fa-bell"></i>
+                    <span class="notification-count">3</span>
+                </button>
+                <div class="user-avatar" id="userAvatar">JS</div>
+            </div>
+        </header>
+
+        <!-- Main Content -->
+        <main>
+            <!-- Left Sidebar -->
+            <aside class="sidebar">
+                <ul class="sidebar-menu">
+                    <li><a href="#" class="sidebar-link active" data-page="dashboard"><i class="fas fa-home"></i> Dashboard</a></li>
+                    <li><a href="#" class="sidebar-link" data-page="scan"><i class="fas fa-camera"></i> Scan QR</a></li>
+                    <li><a href="#" class="sidebar-link" data-page="generate"><i class="fas fa-qrcode"></i> Generate QR</a></li>
+                    <li><a href="#" class="sidebar-link" data-page="files"><i class="fas fa-folder"></i> My Files</a></li>
+                    <li><a href="#" class="sidebar-link" data-page="friends"><i class="fas fa-users"></i> Friends</a></li>
+                    <li><a href="#" class="sidebar-link" data-page="shared"><i class="fas fa-share-alt"></i> Shared</a></li>
+                    <li><a href="#" class="sidebar-link" data-page="profile"><i class="fas fa-user"></i> Profile</a></li>
+                    <li><a href="#" class="sidebar-link" data-page="settings"><i class="fas fa-cog"></i> Settings</a></li>
+                </ul>
+            </aside>
+
+            <!-- Content Areas -->
+            <!-- Dashboard -->
+            <section class="content-area active" id="dashboard">
+                <h2>Dashboard</h2>
+                <div class="dashboard-stats">
+                    <div class="stat-card">
+                        <i class="fas fa-qrcode"></i>
+                        <h3>QR Codes Generated</h3>
+                        <div class="count">24</div>
+                    </div>
+                    <div class="stat-card">
+                        <i class="fas fa-user-friends"></i>
+                        <h3>Friends</h3>
+                        <div class="count">8</div>
+                    </div>
+                    <div class="stat-card">
+                        <i class="fas fa-shield-alt"></i>
+                        <h3>Files Encrypted</h3>
+                        <div class="count">42</div>
+                    </div>
+                    <div class="stat-card">
+                        <i class="fas fa-history"></i>
+                        <h3>Last Activity</h3>
+                        <div class="count">2h ago</div>
+                    </div>
+                </div>
+
+                <div class="quick-actions mt-2">
+                    <h3>Quick Actions</h3>
+                    <div style="display: flex; gap: 1rem; margin-top: 1rem;">
+                        <button class="btn btn-primary" data-page="generate">
+                            <i class="fas fa-plus"></i> New QR
+                        </button>
+                        <button class="btn btn-success" data-page="scan">
+                            <i class="fas fa-camera"></i> Scan QR
+                        </button>
+                        <button class="btn btn-outline" data-page="friends">
+                            <i class="fas fa-user-plus"></i> Add Friend
+                        </button>
+                    </div>
+                </div>
+            </section>
+
+            <!-- QR Scanner -->
+            <section class="content-area" id="scan">
+                <h2>Scan QR Code</h2>
+                <div class="scanner-container">
+                    <div class="scanner-overlay">
+                        <video id="scanner-video"></video>
+                        <div class="scanner-frame"></div>
+                    </div>
+                    <p class="mt-1">Position QR code within the frame to scan</p>
+                    <button class="btn btn-primary mt-1" id="startScanner">
+                        <i class="fas fa-play"></i> Start Scanner
+                    </button>
+                    <button class="btn btn-danger mt-1 hidden" id="stopScanner">
+                        <i class="fas fa-stop"></i> Stop Scanner
+                    </button>
+                    
+                    <div id="scan-result" class="hidden mt-2">
+                        <h3>Scan Result:</h3>
+                        <div id="decrypted-content" style="
+                            background: rgba(0,0,0,0.3);
+                            padding: 1rem;
+                            border-radius: var(--border-radius);
+                            font-family: 'Roboto Mono', monospace;
+                            word-break: break-all;
+                        "></div>
+                        <button class="btn btn-success mt-1" id="saveResult">
+                            <i class="fas fa-save"></i> Save Content
+                        </button>
+                    </div>
+                </div>
+            </section>
+
+            <!-- QR Generator -->
+            <section class="content-area" id="generate">
+                <h2>Generate QR Code</h2>
+                <div class="qr-generator">
+                    <div class="qr-input-group">
+                        <label for="contentType">Content Type</label>
+                        <select id="contentType">
+                            <option value="text">Text</option>
+                            <option value="file">File</option>
+                            <option value="link">Link</option>
+                        </select>
+                    </div>
+
+                    <div id="text-input">
+                        <div class="qr-input-group">
+                            <label for="qrText">Enter Text to Encrypt</label>
+                            <textarea id="qrText" placeholder="Enter your secret text here..."></textarea>
+                        </div>
+                    </div>
+
+                    <div id="file-input" class="hidden">
+                        <div class="qr-input-group">
+                            <label>Upload File</label>
+                            <div class="file-upload" id="fileDropArea">
+                                <i class="fas fa-cloud-upload-alt" style="font-size: 3rem; margin-bottom: 1rem;"></i>
+                                <p>Drag & drop files here or click to browse</p>
+                                <input type="file" id="fileInput" hidden>
+                                <p class="mt-1" style="font-size: 0.9rem; color: var(--gray);">
+                                    Supports: PDF, Images, Word, Text files
+                                </p>
+                            </div>
+                            <div id="fileInfo" class="hidden mt-1">
+                                <p><strong>Selected file:</strong> <span id="fileName"></span></p>
+                                <p><strong>Size:</strong> <span id="fileSize"></span></p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="qr-input-group">
+                        <label for="selectFriend">Share With (Optional)</label>
+                        <select id="selectFriend">
+                            <option value="">Public (Anyone can scan)</option>
+                            <option value="friend1">John Doe</option>
+                            <option value="friend2">Jane Smith</option>
+                            <option value="friend3">Bob Johnson</option>
+                        </select>
+                    </div>
+
+                    <div class="qr-input-group">
+                        <label for="encryptionLevel">Encryption Level</label>
+                        <select id="encryptionLevel">
+                            <option value="standard">Standard (AES-128)</option>
+                            <option value="high" selected>High (AES-256)</option>
+                            <option value="military">Military Grade (AES-256 + RSA)</option>
+                        </select>
+                    </div>
+
+                    <button class="btn btn-primary" id="generateQR">
+                        <i class="fas fa-lock"></i> Encrypt & Generate QR
+                    </button>
+
+                    <div class="qr-result" id="qrResult">
+                        <h3 class="mt-2">Your Secure QR Code</h3>
+                        <div id="qr-code"></div>
+                        <p class="mt-1">This QR contains encrypted data that can only be decrypted by authorized recipients.</p>
+                        <div style="display: flex; gap: 1rem; justify-content: center; margin-top: 1rem;">
+                            <button class="btn btn-success" id="downloadQR">
+                                <i class="fas fa-download"></i> Download QR
+                            </button>
+                            <button class="btn btn-outline" id="shareQR">
+                                <i class="fas fa-share"></i> Share
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Friends Page -->
+            <section class="content-area" id="friends">
+                <h2>Friends</h2>
+                <div class="friends-container">
+                    <div style="display: flex; justify-content: space-between; align-items: center;">
+                        <h3>My Friends</h3>
+                        <button class="btn btn-primary" id="addFriendBtn">
+                            <i class="fas fa-user-plus"></i> Add Friend
+                        </button>
+                    </div>
+                    
+                    <div class="friend-list mt-1">
+                        <!-- Friends will be loaded here -->
+                    </div>
+
+                    <h3 class="mt-2">Friend Requests</h3>
+                    <div id="friendRequests">
+                        <!-- Friend requests will be loaded here -->
+                    </div>
+                </div>
+            </section>
+
+            <!-- Profile Page -->
+            <section class="content-area" id="profile">
+                <h2>My Profile</h2>
+                <div class="profile-container">
+                    <div class="profile-header">
+                        <div class="profile-avatar" id="profileAvatar">JS</div>
+                        <div>
+                            <h3 id="profileName">John Smith</h3>
+                            <p id="profileEmail">john@example.com</p>
+                            <p><i class="fas fa-shield-alt" style="color: var(--success);"></i> Account verified</p>
+                        </div>
+                    </div>
+
+                    <div class="profile-details">
+                        <h3>Account Information</h3>
+                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 2rem; margin-top: 1rem;">
+                            <div>
+                                <p><strong>Member Since:</strong> <span id="memberSince">Jan 2024</span></p>
+                                <p><strong>Last Login:</strong> <span id="lastLogin">2 hours ago</span></p>
+                                <p><strong>Public Key:</strong> <span id="publicKey">0x1a2b3c...e4f5</span></p>
+                            </div>
+                            <div>
+                                <p><strong>Total Shares:</strong> <span id="totalShares">24</span></p>
+                                <p><strong>Files Encrypted:</strong> <span id="filesEncrypted">42</span></p>
+                                <p><strong>Friends:</strong> <span id="friendsCount">8</span></p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="security-settings mt-2">
+                        <h3>Security Settings</h3>
+                        <div style="margin-top: 1rem;">
+                            <button class="btn btn-outline">
+                                <i class="fas fa-key"></i> Regenerate Keys
+                            </button>
+                            <button class="btn btn-outline">
+                                <i class="fas fa-history"></i> View Activity Log
+                            </button>
+                            <button class="btn btn-danger">
+                                <i class="fas fa-sign-out-alt"></i> Logout All Devices
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Files Page -->
+            <section class="content-area" id="files">
+                <h2>My Files</h2>
+                <div class="files-container">
+                    <!-- Files will be loaded here -->
+                </div>
+            </section>
+
+            <!-- Shared Page -->
+            <section class="content-area" id="shared">
+                <h2>Shared Content</h2>
+                <div class="shared-container">
+                    <!-- Shared items will be loaded here -->
+                </div>
+            </section>
+
+            <!-- Settings Page -->
+            <section class="content-area" id="settings">
+                <h2>Settings</h2>
+                <div class="settings-container">
+                    <!-- Settings will be loaded here -->
+                </div>
+            </section>
+
+            <!-- Right Sidebar -->
+            <aside class="right-sidebar">
+                <h3>Recent Activity</h3>
+                <div class="activity-feed">
+                    <div class="activity-item">
+                        <i class="fas fa-qrcode"></i>
+                        <div>
+                            <p>Generated QR code for secret message</p>
+                            <small>10 minutes ago</small>
+                        </div>
+                    </div>
+                    <div class="activity-item">
+                        <i class="fas fa-user-plus"></i>
+                        <div>
+                            <p>Friend request accepted by Jane</p>
+                            <small>2 hours ago</small>
+                        </div>
+                    </div>
+                    <div class="activity-item">
+                        <i class="fas fa-shield-alt"></i>
+                        <div>
+                            <p>Encrypted PDF file for sharing</p>
+                            <small>1 day ago</small>
+                        </div>
+                    </div>
+                    <div class="activity-item">
+                        <i class="fas fa-download"></i>
+                        <div>
+                            <p>Downloaded file from QR scan</p>
+                            <small>2 days ago</small>
+                        </div>
+                    </div>
+                </div>
+
+                <h3 class="mt-2">Quick Stats</h3>
+                <div style="background: rgba(255,255,255,0.05); padding: 1rem; border-radius: var(--border-radius);">
+                    <p><i class="fas fa-lock" style="color: var(--success);"></i> All data encrypted</p>
+                    <p><i class="fas fa-database" style="color: var(--primary);"></i> Storage: 2.4GB/10GB</p>
+                    <p><i class="fas fa-user-shield" style="color: var(--warning);"></i> Security: Excellent</p>
+                </div>
+            </aside>
+        </main>
+
+        <!-- Modals -->
+        <!-- Add Friend Modal -->
+        <div class="modal" id="addFriendModal">
+            <div class="modal-content">
+                <h3>Add New Friend</h3>
+                <div class="qr-input-group">
+                    <label>Friend's Email or Username</label>
+                    <input type="text" id="friendSearch" placeholder="Enter email or username">
+                </div>
+                <div class="qr-input-group">
+                    <label>Friend's Public Key (Optional)</label>
+                    <textarea id="friendPublicKey" placeholder="Enter friend's public key for secure sharing"></textarea>
+                </div>
+                <div style="display: flex; gap: 1rem; margin-top: 1rem;">
+                    <button class="btn btn-primary" id="sendFriendRequest">
+                        <i class="fas fa-paper-plane"></i> Send Request
+                    </button>
+                    <button class="btn btn-outline" id="closeAddFriendModal">
+                        Cancel
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Notification Modal -->
+        <div class="modal" id="notificationModal">
+            <div class="modal-content">
+                <h3>Notifications</h3>
+                <div id="notificationsList">
+                    <!-- Notifications will be loaded here -->
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // App State
+        const appState = {
+            currentPage: 'dashboard',
+            user: {
+                name: 'John Smith',
+                email: 'john@example.com',
+                avatar: 'JS'
+            },
+            friends: [
+                { id: 1, name: 'Jane Smith', avatar: 'JS', status: 'online' },
+                { id: 2, name: 'Bob Johnson', avatar: 'BJ', status: 'offline' },
+                { id: 3, name: 'Alice Brown', avatar: 'AB', status: 'online' }
+            ],
+            notifications: [
+                { id: 1, type: 'friend_request', from: 'Mike Wilson', time: '10 min ago' },
+                { id: 2, type: 'qr_scan', message: 'QR code scanned successfully', time: '2 hours ago' },
+                { id: 3, type: 'file_received', from: 'Jane Smith', time: '1 day ago' }
+            ]
+        };
+
+        // DOM Elements
+        const elements = {
+            contentAreas: document.querySelectorAll('.content-area'),
+            navLinks: document.querySelectorAll('.nav-link'),
+            sidebarLinks: document.querySelectorAll('.sidebar-link'),
+            userAvatar: document.getElementById('userAvatar'),
+            profileAvatar: document.getElementById('profileAvatar'),
+            profileName: document.getElementById('profileName'),
+            profileEmail: document.getElementById('profileEmail'),
+            startScanner: document.getElementById('startScanner'),
+            stopScanner: document.getElementById('stopScanner'),
+            scannerVideo: document.getElementById('scannerVideo'),
+            scanResult: document.getElementById('scan-result'),
+            decryptedContent: document.getElementById('decrypted-content'),
+            contentType: document.getElementById('contentType'),
+            textInput: document.getElementById('text-input'),
+            fileInput: document.getElementById('file-input'),
+            fileDropArea: document.getElementById('fileDropArea'),
+            fileInputElement: document.getElementById('fileInput'),
+            fileInfo: document.getElementById('fileInfo'),
+            fileName: document.getElementById('fileName'),
+            fileSize: document.getElementById('fileSize'),
+            generateQR: document.getElementById('generateQR'),
+            qrResult: document.getElementById('qrResult'),
+            qrCodeDiv: document.getElementById('qr-code'),
+            addFriendBtn: document.getElementById('addFriendBtn'),
+            addFriendModal: document.getElementById('addFriendModal'),
+            closeAddFriendModal: document.getElementById('closeAddFriendModal'),
+            sendFriendRequest: document.getElementById('sendFriendRequest'),
+            notificationBtn: document.getElementById('notificationBtn'),
+            notificationModal: document.getElementById('notificationModal'),
+            notificationsList: document.getElementById('notificationsList')
+        };
+
+        // Initialize App
+        function initApp() {
+            // Set user info
+            elements.userAvatar.textContent = appState.user.avatar;
+            elements.profileAvatar.textContent = appState.user.avatar;
+            elements.profileName.textContent = appState.user.name;
+            elements.profileEmail.textContent = appState.user.email;
+
+            // Setup navigation
+            setupNavigation();
+            
+            // Setup QR generator
+            setupQRGenerator();
+            
+            // Setup file upload
+            setupFileUpload();
+            
+            // Setup scanner
+            setupScanner();
+            
+            // Setup modals
+            setupModals();
+            
+            // Load initial data
+            loadFriends();
+            loadNotifications();
+        }
+
+        // Navigation
+        function setupNavigation() {
+            // Header navigation
+            elements.navLinks.forEach(link => {
+                link.addEventListener('click', (e) => {
+                    e.preventDefault();
+                    const page = link.dataset.page;
+                    switchPage(page);
+                    
+                    // Update active states
+                    elements.navLinks.forEach(l => l.classList.remove('active'));
+                    link.classList.add('active');
+                    
+                    elements.sidebarLinks.forEach(l => l.classList.remove('active'));
+                    document.querySelector(`.sidebar-link[data-page="${page}"]`)?.classList.add('active');
+                });
+            });
+
+            // Sidebar navigation
+            elements.sidebarLinks.forEach(link => {
+                link.addEventListener('click', (e) => {
+                    e.preventDefault();
+                    const page = link.dataset.page;
+                    switchPage(page);
+                    
+                    // Update active states
+                    elements.sidebarLinks.forEach(l => l.classList.remove('active'));
+                    link.classList.add('active');
+                    
+                    elements.navLinks.forEach(l => l.classList.remove('active'));
+                    document.querySelector(`.nav-link[data-page="${page}"]`)?.classList.add('active');
+                });
+            });
+        }
+
+        function switchPage(page) {
+            // Hide all content areas
+            elements.contentAreas.forEach(area => area.classList.remove('active'));
+            
+            // Show selected page
+            const targetPage = document.getElementById(page);
+            if (targetPage) {
+                targetPage.classList.add('active');
+                appState.currentPage = page;
+                
+                // Handle page-specific initialization
+                switch(page) {
+                    case 'friends':
+                        loadFriends();
+                        break;
+                    case 'scan':
+                        resetScanner();
+                        break;
+                }
+            }
+        }
+
+        // QR Generator
+        function setupQRGenerator() {
+            // Content type toggle
+            elements.contentType.addEventListener('change', function() {
+                if (this.value === 'text') {
+                    elements.textInput.classList.remove('hidden');
+                    elements.fileInput.classList.add('hidden');
+                } else if (this.value === 'file') {
+                    elements.textInput.classList.add('hidden');
+                    elements.fileInput.classList.remove('hidden');
+                }
+            });
+
+            // Generate QR button
+            elements.generateQR.addEventListener('click', generateQRCode);
+            
+            // Download QR button
+            document.getElementById('downloadQR')?.addEventListener('click', downloadQRCode);
+        }
+
+        function generateQRCode() {
+            const contentType = elements.contentType.value;
+            const friend = document.getElementById('selectFriend').value;
+            const encryptionLevel = document.getElementById('encryptionLevel').value;
+            
+            let data = '';
+            
+            if (contentType === 'text') {
+                const text = document.getElementById('qrText').value;
+                if (!text.trim()) {
+                    alert('Please enter some text');
+                    return;
+                }
+                data = `ENCRYPTED:${encryptionLevel}:${friend || 'PUBLIC'}:${btoa(text)}`;
+            } else if (contentType === 'file') {
+                if (!elements.fileInputElement.files[0]) {
+                    alert('Please select a file');
+                    return;
+                }
+                data = `FILE:${encryptionLevel}:${friend || 'PUBLIC'}:mock-file-data`;
+            }
+            
+            // Clear previous QR code
+            elements.qrCodeDiv.innerHTML = '';
+            
+            // Generate new QR code
+            QRCode.toCanvas(elements.qrCodeDiv, data, {
+                width: 200,
+                height: 200,
+                color: {
+                    dark: '#000000',
+                    light: '#ffffff'
+                }
+            }, function(error) {
+                if (error) {
+                    console.error(error);
+                    alert('Error generating QR code');
+                    return;
+                }
+                
+                // Show result
+                elements.qrResult.style.display = 'block';
+            });
+        }
+
+        function downloadQRCode() {
+            const canvas = elements.qrCodeDiv.querySelector('canvas');
+            if (canvas) {
+                const link = document.createElement('a');
+                link.download = 'secure-qr-code.png';
+                link.href = canvas.toDataURL('image/png');
+                link.click();
+            }
+        }
+
+        // File Upload
+        function setupFileUpload() {
+            // Click on drop area
+            elements.fileDropArea.addEventListener('click', () => {
+                elements.fileInputElement.click();
+            });
+
+            // Handle file selection
+            elements.fileInputElement.addEventListener('change', handleFileSelect);
+
+            // Drag and drop
+            elements.fileDropArea.addEventListener('dragover', (e) => {
+                e.preventDefault();
+                elements.fileDropArea.style.borderColor = 'var(--success)';
+                elements.fileDropArea.style.background = 'rgba(76, 201, 240, 0.1)';
+            });
+
+            elements.fileDropArea.addEventListener('dragleave', () => {
+                elements.fileDropArea.style.borderColor = 'rgba(255, 255, 255, 0.3)';
+                elements.fileDropArea.style.background = 'transparent';
+            });
+
+            elements.fileDropArea.addEventListener('drop', (e) => {
+                e.preventDefault();
+                elements.fileDropArea.style.borderColor = 'rgba(255, 255, 255, 0.3)';
+                elements.fileDropArea.style.background = 'transparent';
+                
+                if (e.dataTransfer.files.length) {
+                    elements.fileInputElement.files = e.dataTransfer.files;
+                    handleFileSelect();
+                }
+            });
+        }
+
+        function handleFileSelect() {
+            const file = elements.fileInputElement.files[0];
+            if (file) {
+                elements.fileInfo.classList.remove('hidden');
+                elements.fileName.textContent = file.name;
+                elements.fileSize.textContent = formatFileSize(file.size);
+            }
+        }
+
+        function formatFileSize(bytes) {
+            if (bytes === 0) return '0 Bytes';
+            const k = 1024;
+            const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+            const i = Math.floor(Math.log(bytes) / Math.log(k));
+            return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+        }
+
+        // QR Scanner
+        function setupScanner() {
+            let scannerActive = false;
+            
+            elements.startScanner.addEventListener('click', async () => {
+                try {
+                    const stream = await navigator.mediaDevices.getUserMedia({
+                        video: { facingMode: 'environment' }
+                    });
+                    
+                    elements.scannerVideo.srcObject = stream;
+                    elements.startScanner.classList.add('hidden');
+                    elements.stopScanner.classList.remove('hidden');
+                    scannerActive = true;
+                    
+                    // Simulate QR scan for demo
+                    setTimeout(() => {
+                        if (scannerActive) {
+                            simulateQRScan();
+                        }
+                    }, 2000);
+                    
+                } catch (error) {
+                    console.error('Error accessing camera:', error);
+                    alert('Could not access camera. Please check permissions.');
+                }
+            });
+            
+            elements.stopScanner.addEventListener('click', () => {
+                const stream = elements.scannerVideo.srcObject;
+                if (stream) {
+                    stream.getTracks().forEach(track => track.stop());
+                    elements.scannerVideo.srcObject = null;
+                }
+                
+                elements.startScanner.classList.remove('hidden');
+                elements.stopScanner.classList.add('hidden');
+                scannerActive = false;
+            });
+            
+            // Save result button
+            document.getElementById('saveResult')?.addEventListener('click', () => {
+                alert('Content saved successfully!');
+            });
+        }
+
+        function simulateQRScan() {
+            const mockData = 'ENCRYPTED:HIGH:PUBLIC:VGhpcyBpcyBhIHNlY3JldCBtZXNzYWdlIQ=='; // Base64 encoded
+            elements.scanResult.classList.remove('hidden');
+            elements.decryptedContent.textContent = atob('VGhpcyBpcyBhIHNlY3JldCBtZXNzYWdlIQ==');
+            
+            // Stop scanner
+            const stream = elements.scannerVideo.srcObject;
+            if (stream) {
+                stream.getTracks().forEach(track => track.stop());
+                elements.scannerVideo.srcObject = null;
+            }
+            
+            elements.startScanner.classList.remove('hidden');
+            elements.stopScanner.classList.add('hidden');
+        }
+
+        function resetScanner() {
+            elements.scanResult.classList.add('hidden');
+            elements.decryptedContent.textContent = '';
+        }
+
+        // Friends Management
+        function loadFriends() {
+            const friendList = document.querySelector('.friend-list');
+            const friendRequests = document.getElementById('friendRequests');
+            
+            if (!friendList || !friendRequests) return;
+            
+            // Clear existing
+            friendList.innerHTML = '';
+            friendRequests.innerHTML = '';
+            
+            // Add friends
+            appState.friends.forEach(friend => {
+                const friendCard = document.createElement('div');
+                friendCard.className = 'friend-card';
+                friendCard.innerHTML = `
+                    <div class="friend-avatar">${friend.avatar}</div>
+                    <div>
+                        <h4>${friend.name}</h4>
+                        <p><span class="status-dot ${friend.status}"></span> ${friend.status}</p>
+                    </div>
+                    <div style="margin-left: auto;">
+                        <button class="btn btn-outline btn-small" onclick="shareWithFriend(${friend.id})">
+                            <i class="fas fa-share"></i>
+                        </button>
+                    </div>
+                `;
+                friendList.appendChild(friendCard);
+            });
+            
+            // Add friend requests (mock)
+            const requestDiv = document.createElement('div');
+            requestDiv.innerHTML = `
+                <div style="background: rgba(255,255,255,0.05); padding: 1rem; border-radius: var(--border-radius);">
+                    <div style="display: flex; justify-content: space-between; align-items: center;">
+                        <div>
+                            <strong>Mike Wilson</strong>
+                            <p>Wants to connect with you</p>
+                        </div>
+                        <div>
+                            <button class="btn btn-success btn-small" onclick="acceptFriendRequest(1)">
+                                <i class="fas fa-check"></i>
+                            </button>
+                            <button class="btn btn-danger btn-small" onclick="rejectFriendRequest(1)">
+                                <i class="fas fa-times"></i>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            `;
+            friendRequests.appendChild(requestDiv);
+            
+            // Add CSS for status dots
+            const style = document.createElement('style');
+            style.textContent = `
+                .status-dot {
+                    display: inline-block;
+                    width: 8px;
+                    height: 8px;
+                    border-radius: 50%;
+                    margin-right: 5px;
+                }
+                .status-dot.online { background: var(--success); }
+                .status-dot.offline { background: var(--gray); }
+                .btn-small { padding: 0.3rem 0.6rem; font-size: 0.8rem; }
+            `;
+            document.head.appendChild(style);
+        }
+
+        // Modals
+        function setupModals() {
+            // Add friend modal
+            elements.addFriendBtn.addEventListener('click', () => {
+                elements.addFriendModal.classList.add('active');
+            });
+            
+            elements.closeAddFriendModal.addEventListener('click', () => {
+                elements.addFriendModal.classList.remove('active');
+            });
+            
+            elements.sendFriendRequest.addEventListener('click', () => {
+                const friendEmail = document.getElementById('friendSearch').value;
+                if (friendEmail) {
+                    alert(`Friend request sent to ${friendEmail}`);
+                    elements.addFriendModal.classList.remove('active');
+                    document.getElementById('friendSearch').value = '';
+                    document.getElementById('friendPublicKey').value = '';
+                } else {
+                    alert('Please enter email or username');
+                }
+            });
+            
+            // Notification modal
+            elements.notificationBtn.addEventListener('click', () => {
+                elements.notificationModal.classList.add('active');
+            });
+            
+            // Close modals on outside click
+            document.querySelectorAll('.modal').forEach(modal => {
+                modal.addEventListener('click', (e) => {
+                    if (e.target === modal) {
+                        modal.classList.remove('active');
+                    }
+                });
+            });
+        }
+
+        function loadNotifications() {
+            if (!elements.notificationsList) return;
+            
+            elements.notificationsList.innerHTML = '';
+            
+            appState.notifications.forEach(notification => {
+                const notificationDiv = document.createElement('div');
+                notificationDiv.className = 'activity-item';
+                
+                let icon = 'fas fa-bell';
+                let message = notification.message || '';
+                
+                if (notification.type === 'friend_request') {
+                    icon = 'fas fa-user-plus';
+                    message = `Friend request from ${notification.from}`;
+                } else if (notification.type === 'qr_scan') {
+                    icon = 'fas fa-qrcode';
+                } else if (notification.type === 'file_received') {
+                    icon = 'fas fa-file-download';
+                    message = `File received from ${notification.from}`;
+                }
+                
+                notificationDiv.innerHTML = `
+                    <i class="${icon}"></i>
+                    <div>
+                        <p>${message}</p>
+                        <small>${notification.time}</small>
+                    </div>
+                    <button class="btn btn-outline btn-small" style="margin-left: auto;" onclick="markNotificationRead(${notification.id})">
+                        <i class="fas fa-check"></i>
+                    </button>
+                `;
+                
+                elements.notificationsList.appendChild(notificationDiv);
+            });
+        }
+
+        // Mock functions for demo
+        window.shareWithFriend = function(friendId) {
+            alert(`Share with friend ${friendId} - Would open share dialog in production`);
+        };
+
+        window.acceptFriendRequest = function(requestId) {
+            alert(`Friend request ${requestId} accepted`);
+        };
+
+        window.rejectFriendRequest = function(requestId) {
+            alert(`Friend request ${requestId} rejected`);
+        };
+
+        window.markNotificationRead = function(notificationId) {
+            alert(`Notification ${notificationId} marked as read`);
+        };
+
+        // Initialize app when DOM is loaded
+        document.addEventListener('DOMContentLoaded', initApp);
+    </script>
+</body>
+</html>
