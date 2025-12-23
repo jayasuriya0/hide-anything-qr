@@ -1,4 +1,5 @@
 import os
+import ssl
 from flask import Flask, jsonify, send_from_directory, send_file
 from flask_cors import CORS
 from flask_jwt_extended import JWTManager
@@ -9,6 +10,7 @@ from datetime import timedelta
 from dotenv import load_dotenv
 from pymongo import MongoClient
 import redis
+import certifi
 
 # Load environment variables
 load_dotenv()
@@ -78,20 +80,26 @@ try:
     # Get MongoDB URI
     mongo_uri = app.config['MONGO_URI']
     
-    # Ensure URI has SSL parameters for MongoDB Atlas
-    if 'mongodb.net' in mongo_uri or 'mongodb+srv' in mongo_uri:
-        # Add SSL parameters to URI if not present
-        if '?' not in mongo_uri:
-            mongo_uri += '?tls=true&tlsAllowInvalidCertificates=true'
-        elif 'tls=' not in mongo_uri and 'ssl=' not in mongo_uri:
-            mongo_uri += '&tls=true&tlsAllowInvalidCertificates=true'
+    # Create SSL context for Python 3.13+ compatibility
+    ssl_context = ssl.create_default_context(cafile=certifi.where())
+    ssl_context.check_hostname = False
+    ssl_context.verify_mode = ssl.CERT_NONE
     
-    mongo_client = MongoClient(
-        mongo_uri,
-        serverSelectionTimeoutMS=5000,
-        connectTimeoutMS=10000,
-        socketTimeoutMS=10000
-    )
+    # Connection parameters
+    connection_params = {
+        'serverSelectionTimeoutMS': 5000,
+        'connectTimeoutMS': 10000,
+        'socketTimeoutMS': 10000
+    }
+    
+    # For MongoDB Atlas, use SSL context
+    if 'mongodb.net' in mongo_uri or 'mongodb+srv' in mongo_uri:
+        connection_params['tls'] = True
+        connection_params['tlsAllowInvalidCertificates'] = True
+        connection_params['ssl_cert_reqs'] = ssl.CERT_NONE
+        connection_params['ssl_ca_certs'] = certifi.where()
+    
+    mongo_client = MongoClient(mongo_uri, **connection_params)
     # Test connection
     mongo_client.admin.command('ping')
     print("✅ MongoDB connected successfully")
