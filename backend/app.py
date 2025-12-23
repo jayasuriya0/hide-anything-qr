@@ -80,11 +80,6 @@ try:
     # Get MongoDB URI
     mongo_uri = app.config['MONGO_URI']
     
-    # Create SSL context for Python 3.13+ compatibility
-    ssl_context = ssl.create_default_context(cafile=certifi.where())
-    ssl_context.check_hostname = False
-    ssl_context.verify_mode = ssl.CERT_NONE
-    
     # Connection parameters
     connection_params = {
         'serverSelectionTimeoutMS': 5000,
@@ -92,12 +87,10 @@ try:
         'socketTimeoutMS': 10000
     }
     
-    # For MongoDB Atlas, use SSL context
+    # For MongoDB Atlas, use TLS with relaxed verification
     if 'mongodb.net' in mongo_uri or 'mongodb+srv' in mongo_uri:
         connection_params['tls'] = True
         connection_params['tlsAllowInvalidCertificates'] = True
-        connection_params['ssl_cert_reqs'] = ssl.CERT_NONE
-        connection_params['ssl_ca_certs'] = certifi.where()
     
     mongo_client = MongoClient(mongo_uri, **connection_params)
     # Test connection
@@ -105,12 +98,12 @@ try:
     print("✅ MongoDB connected successfully")
 except Exception as e:
     print(f"❌ MongoDB connection failed: {e}")
-    if is_production():
-        raise
+    # Create a dummy client for development
+    mongo_client = None
     if is_production():
         raise
     
-db = mongo_client.hide_anything_qr
+db = mongo_client.hide_anything_qr if mongo_client else None
 try:
     redis_client = redis.from_url(os.environ.get('REDIS_URL', 'redis://localhost:6379/0'))
 except:
