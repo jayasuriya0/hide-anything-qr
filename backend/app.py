@@ -80,24 +80,41 @@ try:
     # Get MongoDB URI
     mongo_uri = app.config['MONGO_URI']
     
-    # Connection parameters
+    # Remove any existing TLS parameters from URI to control them via options
+    if '?' in mongo_uri:
+        base_uri = mongo_uri.split('?')[0]
+        # Extract database name if present
+        if '/' in base_uri.split('@')[-1]:
+            mongo_uri = base_uri
+        else:
+            mongo_uri = base_uri
+    
+    # Connection parameters with aggressive TLS workaround for Python 3.11+
     connection_params = {
-        'serverSelectionTimeoutMS': 5000,
-        'connectTimeoutMS': 10000,
-        'socketTimeoutMS': 10000
+        'serverSelectionTimeoutMS': 10000,
+        'connectTimeoutMS': 20000,
+        'socketTimeoutMS': 20000,
+        'retryWrites': True,
+        'w': 'majority'
     }
     
-    # For MongoDB Atlas, use TLS with relaxed verification
+    # For MongoDB Atlas, disable TLS verification completely
     if 'mongodb.net' in mongo_uri or 'mongodb+srv' in mongo_uri:
         connection_params['tls'] = True
         connection_params['tlsAllowInvalidCertificates'] = True
+        connection_params['tlsInsecure'] = True
+        # Add these for extra compatibility
+        connection_params['directConnection'] = False
+        connection_params['retryReads'] = True
     
+    print(f"🔗 Connecting to MongoDB with TLS parameters...")
     mongo_client = MongoClient(mongo_uri, **connection_params)
-    # Test connection
+    # Test connection with longer timeout
     mongo_client.admin.command('ping')
     print("✅ MongoDB connected successfully")
 except Exception as e:
     print(f"❌ MongoDB connection failed: {e}")
+    print(f"   Connection URI (masked): mongodb+srv://***@{mongo_uri.split('@')[1] if '@' in mongo_uri else 'unknown'}")
     # Create a dummy client for development
     mongo_client = None
     if is_production():
