@@ -75,10 +75,19 @@ limiter.init_app(app)
 
 # Database connections
 try:
+    # Get MongoDB URI
+    mongo_uri = app.config['MONGO_URI']
+    
+    # Ensure URI has SSL parameters for MongoDB Atlas
+    if 'mongodb.net' in mongo_uri or 'mongodb+srv' in mongo_uri:
+        # Add SSL parameters to URI if not present
+        if '?' not in mongo_uri:
+            mongo_uri += '?tls=true&tlsAllowInvalidCertificates=true'
+        elif 'tls=' not in mongo_uri and 'ssl=' not in mongo_uri:
+            mongo_uri += '&tls=true&tlsAllowInvalidCertificates=true'
+    
     mongo_client = MongoClient(
-        app.config['MONGO_URI'],
-        tls=True,
-        tlsAllowInvalidCertificates=False,
+        mongo_uri,
         serverSelectionTimeoutMS=5000,
         connectTimeoutMS=10000,
         socketTimeoutMS=10000
@@ -88,6 +97,8 @@ try:
     print("✅ MongoDB connected successfully")
 except Exception as e:
     print(f"❌ MongoDB connection failed: {e}")
+    if is_production():
+        raise
     if is_production():
         raise
     
