@@ -865,12 +865,12 @@ function setupEventListeners() {
                     // Update nav
                     document.querySelectorAll('.nav-link, .sidebar-link').forEach(l => l.classList.remove('active'));
                     link.classList.add('active');
-                    // Load files page
-                    console.log('Calling initFilesPage directly');
-                    if (typeof initFilesPage !== 'undefined') {
-                        initFilesPage();
+                    // Load chat page
+                    console.log('Calling initChatPage directly');
+                    if (typeof initChatPage !== 'undefined') {
+                        initChatPage();
                     } else {
-                        console.error('initFilesPage is not defined!');
+                        console.error('initChatPage is not defined!');
                     }
                 } else if (section === 'settings') {
                     console.log('DIRECT SETTINGS SECTION HANDLER');

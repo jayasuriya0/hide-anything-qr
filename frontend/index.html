@@ -8,7 +8,7 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="styles/modern.css">
-    <link rel="stylesheet" href="styles/dashboard.css?v=3">
+    <link rel="stylesheet" href="styles/dashboard.css?v=5">
 </head>
 <body>
     <!-- Authentication Section -->
@@ -107,7 +107,7 @@
             
             <div class="user-menu">
                 <div class="notification-wrapper">
-                    <button class="notification-btn" id="notificationBtn">
+                    <button class="notification-btn" id="notificationBtn" aria-label="Notifications" title="View notifications">
                         <i class="fas fa-bell"></i>
                         <span class="notification-badge" id="notificationBadge" style="display: none;">0</span>
                     </button>
@@ -152,7 +152,7 @@
                     </li>
                     <li class="sidebar-item">
                         <a href="#" class="sidebar-link" data-section="files">
-                            <i class="fas fa-folder"></i> My Files
+                            <i class="fas fa-comments"></i> Messages
                         </a>
                     </li>
                     <li class="sidebar-item">
@@ -274,8 +274,8 @@
                         </div>
                         <div class="card-body">
                             <div class="form-group">
-                                <label class="form-label">Select QR Code Image</label>
-                                <input type="file" id="qrImageInput" class="form-input" accept="image/*">
+                                <label class="form-label" for="qrImageInput">Select QR Code Image</label>
+                                <input type="file" id="qrImageInput" class="form-input" accept="image/*" title="Upload QR code image">
                             </div>
                             <button id="decodeQrImageBtn" class="btn btn-primary">
                                 <i class="fas fa-qrcode"></i> Decode QR Code
@@ -304,18 +304,18 @@
                         </div>
                         <div class="card-body">
                             <div class="form-group">
-                                <label class="form-label">Message</label>
-                                <textarea id="shareTextInput" class="form-textarea" placeholder="Enter your secret message..."></textarea>
+                                <label class="form-label" for="shareTextInput">Message</label>
+                                <textarea id="shareTextInput" class="form-textarea" placeholder="Enter your secret message..." title="Enter message to encrypt"></textarea>
                             </div>
                             <div class="form-group">
-                                <label class="form-label">Share with (optional)</label>
-                                <select id="shareReceiver" class="form-select">
+                                <label class="form-label" for="shareReceiver">Share with (optional)</label>
+                                <select id="shareReceiver" class="form-select" title="Select recipient">
                                     <option value="">Public (anyone with QR code)</option>
                                 </select>
                             </div>
                             <div class="form-group">
-                                <label class="form-label"><i class="fas fa-shield-alt"></i> Encryption Level</label>
-                                <select id="textEncryptionLevel" class="form-select">
+                                <label class="form-label" for="textEncryptionLevel"><i class="fas fa-shield-alt"></i> Encryption Level</label>
+                                <select id="textEncryptionLevel" class="form-select" title="Choose encryption strength">
                                     <option value="basic">Basic (AES-128) - Fast</option>
                                     <option value="standard" selected>Standard (AES-192) - Recommended</option>
                                     <option value="high">High (AES-256) - Strong</option>
@@ -337,21 +337,21 @@
                         </div>
                         <div class="card-body">
                             <div class="form-group">
-                                <label class="form-label">Select File</label>
-                                <input type="file" id="fileInput" class="form-input" accept="image/*,video/*,audio/*,.pdf,.doc,.docx,.txt">
+                                <label class="form-label" for="fileInput">Select File</label>
+                                <input type="file" id="fileInput" class="form-input" accept="image/*,video/*,audio/*,.pdf,.doc,.docx,.txt" title="Upload file to encrypt">
                                 <small class="text-muted" style="display: block; margin-top: 0.5rem;">
                                     <i class="fas fa-info-circle"></i> Upload images, videos, documents, or any file
                                 </small>
                             </div>
                             <div class="form-group">
-                                <label class="form-label">Share with (optional)</label>
-                                <select id="fileReceiver" class="form-select">
+                                <label class="form-label" for="fileReceiver">Share with (optional)</label>
+                                <select id="fileReceiver" class="form-select" title="Select file recipient">
                                     <option value="">Public (anyone with QR code)</option>
                                 </select>
                             </div>
                             <div class="form-group">
-                                <label class="form-label"><i class="fas fa-shield-alt"></i> Encryption Level</label>
-                                <select id="fileEncryptionLevel" class="form-select">
+                                <label class="form-label" for="fileEncryptionLevel"><i class="fas fa-shield-alt"></i> Encryption Level</label>
+                                <select id="fileEncryptionLevel" class="form-select" title="Choose file encryption strength">
                                     <option value="basic">Basic (AES-128) - Fast</option>
                                     <option value="standard" selected>Standard (AES-192) - Recommended</option>
                                     <option value="high">High (AES-256) - Strong</option>
@@ -425,56 +425,76 @@
 
                 <!-- Files Section -->
                 <section id="filesSection" class="content-section">
-                    <h2 class="section-title"><i class="fas fa-folder"></i> My Files</h2>
+                    <h2 class="section-title"><i class="fas fa-comments"></i> Messages</h2>
                     
-                    <!-- Upload Card -->
-                    <div class="card" style="margin-bottom: 1.5rem;">
-                        <div class="card-header">
-                            <h3 class="card-title"><i class="fas fa-cloud-upload-alt"></i> Upload New File</h3>
-                        </div>
-                        <div class="card-body">
-                            <div class="upload-area" id="fileUploadArea">
-                                <i class="fas fa-cloud-upload-alt" style="font-size: 3rem; color: var(--primary); margin-bottom: 1rem;"></i>
-                                <p style="margin-bottom: 0.5rem;"><strong>Drag & Drop files here</strong></p>
-                                <p class="text-muted" style="margin-bottom: 1rem;">or</p>
-                                <input type="file" id="myFileInput" style="display: none;" multiple accept="image/*,video/*,audio/*,.pdf,.doc,.docx,.txt,.zip,.rar">
-                                <button class="btn btn-primary" id="browseFilesBtn">
-                                    <i class="fas fa-folder-open"></i> Browse Files
-                                </button>
-                                <p class="text-muted" style="margin-top: 1rem; font-size: 0.875rem;">
-                                    <i class="fas fa-info-circle"></i> Max 10MB per file • Images, Videos, Documents, Archives
-                                </p>
-                            </div>
-                            <div id="uploadProgress" class="hidden" style="margin-top: 1rem;">
-                                <div style="display: flex; justify-content: space-between; margin-bottom: 0.5rem;">
-                                    <span id="uploadFileName">Uploading...</span>
-                                    <span id="uploadPercent">0%</span>
-                                </div>
-                                <div style="background: rgba(255,255,255,0.1); border-radius: 0.5rem; height: 0.5rem; overflow: hidden;">
-                                    <div id="uploadProgressBar" style="background: var(--primary); height: 100%; width: 0%; transition: width 0.3s;"></div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                    
-                    <!-- Files List -->
-                    <div class="card">
-                        <div class="card-header" style="display: flex; justify-content: space-between; align-items: center;">
-                            <h3 class="card-title"><i class="fas fa-list"></i> Your Files</h3>
-                            <div style="display: flex; gap: 0.5rem; align-items: center;">
-                                <select id="filesSortBy" class="form-select" style="width: auto; font-size: 0.875rem;">
-                                    <option value="date">Sort by Date</option>
-                                    <option value="name">Sort by Name</option>
-                                    <option value="size">Sort by Size</option>
-                                    <option value="type">Sort by Type</option>
-                                </select>
-                                <button class="btn btn-sm btn-outline" id="filesViewToggle" title="Toggle View">
-                                    <i class="fas fa-th"></i>
+                    <div class="chat-container">
+                        <!-- Conversations List (Left) -->
+                        <div class="conversations-panel">
+                            <div class="conversations-header">
+                                <h3><i class="fas fa-comments"></i> Chats</h3>
+                                <button class="btn btn-sm btn-primary" id="newChatBtn" title="New Chat">
+                                    <i class="fas fa-plus"></i>
                                 </button>
                             </div>
+                            <div class="conversations-search">
+                                <input type="text" id="chatSearch" class="form-input" placeholder="Search conversations...">
+                            </div>
+                            <div class="conversations-list" id="conversationsList">
+                                <p class="text-muted text-center" style="padding: 2rem;">No conversations yet. Start chatting with your friends!</p>
+                            </div>
                         </div>
-                        <div class="card-body" id="filesListContainer">
-                            <p class="text-muted text-center">No files uploaded yet</p>
+                        
+                        <!-- Chat Messages (Right) -->
+                        <div class="chat-panel" style="display: flex !important; flex-direction: column !important; height: 100% !important; position: relative !important;">
+                            <div class="chat-empty" id="chatEmpty" style="position: absolute !important; inset: 0 !important; display: flex !important; flex-direction: column !important; align-items: center !important; justify-content: center !important;">
+                                <i class="fas fa-comments" style="font-size: 4rem; color: var(--text-muted); margin-bottom: 1rem;"></i>
+                                <h3 style="color: var(--text-muted);">Select a conversation</h3>
+                                <p class="text-muted">Choose a friend from your conversations to start chatting</p>
+                            </div>
+                            
+                            <div class="chat-active hidden" id="chatActive" style="position: absolute !important; inset: 0 !important; display: flex !important; flex-direction: column !important; overflow: hidden !important;">
+                                <!-- Chat Header -->
+                                <div class="chat-header" style="flex-shrink: 0 !important;">
+                                    <div class="chat-friend-info">
+                                        <div class="friend-avatar" id="chatFriendAvatar">F</div>
+                                        <div>
+                                            <h3 id="chatFriendName">Friend Name</h3>
+                                            <p class="text-muted" style="font-size: 0.875rem;">Click to view profile</p>
+                                        </div>
+                                    </div>
+                                    <div class="chat-actions">
+                                        <button class="btn-icon" id="shareQRBtn" title="Share QR Code">
+                                            <i class="fas fa-qrcode"></i>
+                                        </button>
+                                        <button class="btn-icon" id="chatOptionsBtn" title="Options">
+                                            <i class="fas fa-ellipsis-v"></i>
+                                        </button>
+                                    </div>
+                                </div>
+                                
+                                <!-- Messages Area -->
+                                <div class="messages-container" id="messagesContainer" style="flex: 1 !important; overflow-y: auto !important; overflow-x: hidden !important; min-height: 0 !important; max-height: 100% !important;">
+                                    <div class="messages-loading hidden" id="messagesLoading">
+                                        <i class="fas fa-spinner fa-spin"></i> Loading messages...
+                                    </div>
+                                    <div class="messages-list" id="messagesList" style="display: flex !important; flex-direction: column !important; gap: 0.5rem;">
+                                        <!-- Messages will be dynamically added here -->
+                                    </div>
+                                </div>
+                                
+                                <!-- Message Input -->
+                                <div class="message-input-area" style="flex-shrink: 0 !important;">
+                                    <div class="message-input-wrapper">
+                                        <button class="btn-icon" id="attachFileBtn" title="Attach File">
+                                            <i class="fas fa-paperclip"></i>
+                                        </button>
+                                        <input type="text" id="messageInput" class="message-input" placeholder="Type a message..." autocomplete="off">
+                                        <button class="btn-icon btn-primary" id="sendMessageBtn" title="Send">
+                                            <i class="fas fa-paper-plane"></i>
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
                         </div>
                     </div>
                 </section>
@@ -616,8 +636,8 @@
                         </div>
                         <div class="card-body">
                             <div class="form-group">
-                                <label class="form-label">Profile Visibility</label>
-                                <select id="profilePrivacy" class="form-select">
+                                <label class="form-label" for="profilePrivacy">Profile Visibility</label>
+                                <select id="profilePrivacy" class="form-select" title="Choose profile visibility">
                                     <option value="public">Public - Anyone can see my profile</option>
                                     <option value="friends_only">Friends Only - Only friends can see my profile</option>
                                     <option value="private">Private - Only I can see my full profile</option>
@@ -654,8 +674,8 @@
                         </div>
                         <div class="card-body">
                             <div class="form-group">
-                                <label class="form-label">Theme</label>
-                                <select id="profileTheme" class="form-select">
+                                <label class="form-label" for="profileTheme">Theme</label>
+                                <select id="profileTheme" class="form-select" title="Choose theme">
                                     <option value="dark">Dark Mode</option>
                                     <option value="light">Light Mode</option>
                                 </select>
@@ -678,17 +698,17 @@
                         </div>
                         <div class="card-body">
                             <div class="form-group">
-                                <label class="form-label">Username</label>
-                                <input type="text" id="settingsUsername" class="form-input" readonly>
+                                <label class="form-label" for="settingsUsername">Username</label>
+                                <input type="text" id="settingsUsername" class="form-input" readonly title="Username cannot be changed">
                                 <small class="text-muted">Username cannot be changed</small>
                             </div>
                             <div class="form-group">
-                                <label class="form-label">Email</label>
-                                <input type="email" id="settingsEmail" class="form-input">
+                                <label class="form-label" for="settingsEmail">Email</label>
+                                <input type="email" id="settingsEmail" class="form-input" title="Update your email">
                             </div>
                             <div class="form-group">
-                                <label class="form-label">Phone Number</label>
-                                <input type="tel" id="settingsPhone" class="form-input" placeholder="+1234567890">
+                                <label class="form-label" for="settingsPhone">Phone Number</label>
+                                <input type="tel" id="settingsPhone" class="form-input" placeholder="+1234567890" title="Update your phone number">
                             </div>
                             <button id="updateAccountBtn" class="btn btn-primary">
                                 <i class="fas fa-save"></i> Update Account
@@ -703,16 +723,16 @@
                         </div>
                         <div class="card-body">
                             <div class="form-group">
-                                <label class="form-label">Current Password</label>
-                                <input type="password" id="currentPassword" class="form-input" placeholder="Enter current password">
+                                <label class="form-label" for="currentPassword">Current Password</label>
+                                <input type="password" id="currentPassword" class="form-input" placeholder="Enter current password" title="Enter your current password">
                             </div>
                             <div class="form-group">
-                                <label class="form-label">New Password</label>
-                                <input type="password" id="newPassword" class="form-input" placeholder="Enter new password">
+                                <label class="form-label" for="newPassword">New Password</label>
+                                <input type="password" id="newPassword" class="form-input" placeholder="Enter new password" title="Enter your new password">
                             </div>
                             <div class="form-group">
-                                <label class="form-label">Confirm New Password</label>
-                                <input type="password" id="confirmPassword" class="form-input" placeholder="Confirm new password">
+                                <label class="form-label" for="confirmPassword">Confirm New Password</label>
+                                <input type="password" id="confirmPassword" class="form-input" placeholder="Confirm new password" title="Confirm your new password">
                             </div>
                             <button id="changePasswordBtn" class="btn btn-primary">
                                 <i class="fas fa-key"></i> Change Password
@@ -727,8 +747,8 @@
                         </div>
                         <div class="card-body">
                             <div class="form-group">
-                                <label class="form-label">Default Encryption Level</label>
-                                <select id="defaultEncryption" class="form-select">
+                                <label class="form-label" for="defaultEncryption">Default Encryption Level</label>
+                                <select id="defaultEncryption" class="form-select" title="Choose default encryption level">
                                     <option value="basic">Basic (AES-128) - Fast</option>
                                     <option value="standard" selected>Standard (AES-192) - Recommended</option>
                                     <option value="high">High (AES-256) - Strong</option>
@@ -736,8 +756,8 @@
                                 </select>
                             </div>
                             <div class="form-group">
-                                <label class="form-label">Default Expiration Time</label>
-                                <select id="defaultExpiration" class="form-select">
+                                <label class="form-label" for="defaultExpiration">Default Expiration Time</label>
+                                <select id="defaultExpiration" class="form-select" title="Choose default expiration time">
                                     <option value="0">Never Expire</option>
                                     <option value="3600">1 Hour</option>
                                     <option value="86400">24 Hours</option>
@@ -915,7 +935,7 @@
         <div class="modal-content">
             <div class="modal-header">
                 <h3 id="modalQrCodeTitle"><i class="fas fa-qrcode"></i> Your QR Code</h3>
-                <button class="modal-close" onclick="closeQRModal()">
+                <button class="modal-close" onclick="closeQRModal()" aria-label="Close modal" title="Close">
                     <i class="fas fa-times"></i>
                 </button>
             </div>
@@ -953,18 +973,32 @@
     <script src="scripts/qr.js?v=4"></script>
     <script src="scripts/activity.js?v=4"></script>
     <script src="scripts/profile.js?v=6"></script>
-    <script src="scripts/files.js?v=3"></script>
+    <script src="scripts/chat.js?v=1"></script>
     <script src="scripts/settings.js?v=1"></script>
     <script src="scripts/notifications.js?v=3"></script>
 
     <script>
         // QR Modal helper functions
         function showQRModal() {
-            document.getElementById('qrModal').classList.remove('hidden');
-            document.body.style.overflow = 'hidden';
+            console.log('showQRModal called');
+            const modal = document.getElementById('qrModal');
+            console.log('Modal element:', modal);
+            console.log('Modal classes before:', modal ? modal.className : 'modal not found');
+            
+            if (modal) {
+                modal.classList.remove('hidden');
+                document.body.style.overflow = 'hidden';
+                
+                console.log('Modal classes after:', modal.className);
+                console.log('Modal display style:', window.getComputedStyle(modal).display);
+                console.log('Modal z-index:', window.getComputedStyle(modal).zIndex);
+            } else {
+                console.error('qrModal element not found!');
+            }
         }
 
         function closeQRModal() {
+            console.log('closeQRModal called');
             document.getElementById('qrModal').classList.add('hidden');
             document.body.style.overflow = 'auto';
         }

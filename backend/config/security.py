@@ -213,7 +213,8 @@ RATE_LIMITS = {
     'auth': '10 per minute',
     'upload': '20 per hour',
     'decode': '100 per hour',
-    'api': '1000 per hour'
+    'api': '1000 per hour',
+    'messages': '500 per hour'  # Higher limit for real-time messaging
 }
 
 def get_rate_limit_key():

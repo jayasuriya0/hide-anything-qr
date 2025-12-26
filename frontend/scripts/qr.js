@@ -75,9 +75,18 @@ async function decodeContent(qrData) {
 
 // QR Code Generation
 function generateQRCode(qrData, encryptionInfo = null) {
-    const modalQrImage = document.getElementById('modalQrCodeImage');
+    console.log('generateQRCode called with data length:', qrData ? qrData.length : 0);
     
-    if (!modalQrImage) return;
+    const modalQrImage = document.getElementById('modalQrCodeImage');
+    const modal = document.getElementById('qrModal');
+    
+    console.log('modalQrCodeImage element:', modalQrImage);
+    console.log('qrModal element:', modal);
+    
+    if (!modalQrImage) {
+        console.error('modalQrCodeImage not found!');
+        return;
+    }
     
     modalQrImage.innerHTML = '';
     
@@ -90,14 +99,22 @@ function generateQRCode(qrData, encryptionInfo = null) {
         img.style.height = 'auto';
         modalQrImage.appendChild(img);
         
+        console.log('QR image added to modal');
+        
         // Store qrData for download
         window.currentQRData = qrData;
         window.currentEncryptionInfo = encryptionInfo;
         
         // Show the modal
         if (typeof showQRModal === 'function') {
+            console.log('Calling showQRModal...');
             showQRModal();
+            console.log('Modal hidden class:', modal.classList.contains('hidden'));
+        } else {
+            console.error('showQRModal function not found!');
         }
+    } else {
+        console.error('Invalid QR data:', qrData);
     }
 }
 

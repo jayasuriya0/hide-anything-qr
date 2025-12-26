@@ -150,6 +150,7 @@ from routes.friends import friends_bp
 from routes.notifications import notifications_bp
 from routes.profile import profile_bp
 from routes.activity import activity_bp
+from routes.messages import messages_bp
 
 app.register_blueprint(auth_bp, url_prefix='/api/auth')
 app.register_blueprint(content_bp, url_prefix='/api/content')
@@ -157,10 +158,12 @@ app.register_blueprint(friends_bp, url_prefix='/api/friends')
 app.register_blueprint(notifications_bp, url_prefix='/api/notifications')
 app.register_blueprint(profile_bp, url_prefix='/api/profile')
 app.register_blueprint(activity_bp, url_prefix='/api/activity')
+app.register_blueprint(messages_bp, url_prefix='/api/messages')
 
 # Apply rate limits to specific blueprints
 limiter.limit(RATE_LIMITS['auth'])(auth_bp)
 limiter.limit(RATE_LIMITS['upload'])(content_bp)
+limiter.limit(RATE_LIMITS['messages'])(messages_bp)
 
 # Add security headers to all responses
 @app.after_request

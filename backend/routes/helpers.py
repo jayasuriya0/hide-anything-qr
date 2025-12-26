@@ -32,6 +32,11 @@ def get_activity_model():
     from models.activity import Activity
     return Activity(current_app.db)
 
+def get_message_model():
+    """Get Message model instance"""
+    from models.message import Message
+    return Message(current_app.db)
+
 def get_socketio():
     """Get SocketIO instance"""
     return current_app.socketio
