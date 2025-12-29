@@ -52,8 +52,6 @@ class User:
         encrypted_private_key = encrypt_private_key(private_key, password)
         
         user = {
-            'email': email,
-            'phone': phone,
             'username': username,
             'password_hash': password_hash,
             'public_key': public_key,
@@ -78,6 +76,12 @@ class User:
                 'email_notifications': False
             }
         }
+        
+        # Only add email/phone if provided (sparse index requirement)
+        if email:
+            user['email'] = email
+        if phone:
+            user['phone'] = phone
         
         result = self.collection.insert_one(user)
         return str(result.inserted_id)

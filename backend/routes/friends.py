@@ -1,9 +1,32 @@
 from flask import Blueprint, request, jsonify, current_app
 from flask_jwt_extended import jwt_required, get_jwt_identity
 from bson import ObjectId
+from datetime import datetime
 from routes.helpers import get_user_model, get_friend_model, get_socketio, get_activity_model, get_notification_model
 
 friends_bp = Blueprint('friends', __name__)
+
+def serialize_doc(doc):
+    """Convert MongoDB document to JSON-serializable dict"""
+    if doc is None:
+        return None
+    
+    if isinstance(doc, ObjectId):
+        return str(doc)
+    
+    if isinstance(doc, datetime):
+        return doc.isoformat()
+    
+    if isinstance(doc, list):
+        return [serialize_doc(item) for item in doc]
+    
+    if not isinstance(doc, dict):
+        return doc
+    
+    result = {}
+    for key, value in doc.items():
+        result[key] = serialize_doc(value)
+    return result
 
 @friends_bp.route('/search', methods=['GET'])
 @jwt_required()
@@ -18,13 +41,29 @@ def search_users():
         user_model = get_user_model()
         users = user_model.search_users(query, exclude_user_id=user_id)
         
-        # Convert ObjectId to string
-        for user in users:
-            user['_id'] = str(user['_id'])
+        print(f"[DEBUG] Found {len(users)} users")
         
-        return jsonify({'users': users}), 200
+        # Convert to JSON-serializable format
+        result_users = []
+        for user in users:
+            # Serialize the document
+            user_dict = serialize_doc(user)
+            
+            print(f"[DEBUG] Serialized user: {user_dict.get('username', 'NO USERNAME')}")
+            
+            # Ensure username exists
+            if 'username' not in user_dict or not user_dict['username']:
+                continue
+            
+            result_users.append(user_dict)
+        
+        print(f"[DEBUG] Returning {len(result_users)} users")
+        return jsonify({'users': result_users}), 200
         
     except Exception as e:
+        print(f"[ERROR] Friend search failed: {e}")
+        import traceback
+        traceback.print_exc()
         return jsonify({'error': str(e)}), 500
 
 @friends_bp.route('/request', methods=['POST'])

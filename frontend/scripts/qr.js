@@ -187,6 +187,34 @@ window.stopQRScanner = function() {
     if (stopBtn) stopBtn.style.display = 'none';
 };
 
+// Decode secure QR data
+function decodeSecureQRData(rawData) {
+    try {
+        let encoded = null;
+        
+        // Check if it's our secure format (new generic scheme)
+        if (rawData.startsWith('qrs://v?d=')) {
+            encoded = rawData.replace('qrs://v?d=', '');
+        } 
+        // Backward compatibility with old format
+        else if (rawData.startsWith('hideanythingqr://decode?data=')) {
+            encoded = rawData.replace('hideanythingqr://decode?data=', '');
+        }
+        
+        // If encoded format found, decode it
+        if (encoded) {
+            const jsonStr = atob(encoded);
+            return JSON.parse(jsonStr);
+        } else {
+            // Try to parse as JSON (backward compatibility)
+            return JSON.parse(rawData);
+        }
+    } catch (e) {
+        // If all parsing fails, return as-is
+        return rawData;
+    }
+}
+
 // Decode QR Code from uploaded image
 async function decodeQRImage(file) {
     if (!file || !file.type.startsWith('image/')) {
@@ -212,8 +240,8 @@ async function decodeQRImage(file) {
                 
                 if (code && code.data) {
                     try {
-                        // Parse the QR code data
-                        const qrData = JSON.parse(code.data);
+                        // Decode secure QR data
+                        const qrData = decodeSecureQRData(code.data);
                         
                         if (qrData.content_id) {
                             const result = await decodeContent(qrData.content_id);
@@ -292,7 +320,8 @@ function displayDecryptedContent(result) {
                 </div>
             `;
         } else {
-            // Show encrypted state
+            // Show encrypted state with error details
+            const errorMessage = result.decryption_error || 'Full decryption requires implementing client-side RSA decryption with your private key.';
             contentHtml = `
                 <div class="encryption-info-display">
                     <div class="encryption-badge">
@@ -305,13 +334,21 @@ function displayDecryptedContent(result) {
                     <label class="form-label"><strong>Status:</strong> Encrypted</label>
                 </div>
                 <div class="error-message">
-                    <p><i class="fas fa-lock"></i> Content is encrypted.</p>
-                    <p style="font-size: 0.9rem; margin-top: 0.5rem;">Full decryption requires implementing client-side RSA decryption with your private key.</p>
+                    <p><i class="fas fa-lock"></i> Failed to decrypt content.</p>
+                    <p style="font-size: 0.9rem; margin-top: 0.5rem; color: var(--danger-color);">${errorMessage}</p>
+                    <p style="font-size: 0.85rem; margin-top: 0.5rem; color: var(--text-muted);">
+                        <strong>Possible reasons:</strong><br>
+                        • You are not the intended recipient<br>
+                        • Content was shared with a specific person<br>
+                        • Your encryption keys are not available
+                    </p>
                 </div>
+                ${result.encrypted_data ? `
                 <div style="margin-top: 1rem;">
                     <label class="form-label"><strong>Encrypted Data Preview:</strong></label>
-                    <textarea class="form-textarea" readonly style="min-height: 100px; font-family: monospace; font-size: 0.85rem;">${result.encrypted_data?.substring(0, 200)}...</textarea>
+                    <textarea class="form-textarea" readonly style="min-height: 100px; font-family: monospace; font-size: 0.85rem;">${result.encrypted_data}...</textarea>
                 </div>
+                ` : ''}
             `;
         }
     } else if (contentType === 'file') {
@@ -334,20 +371,36 @@ function displayDecryptedContent(result) {
             </div>
         `;
         
-        // If decrypted_content is available and it's media, show view button
-        if (result.decrypted_content && (isImage || isVideo || isAudio)) {
+        // If decrypted_content is available, show view/download button
+        if (result.decrypted_content) {
             const contentId = `media-${Date.now()}`;
             // decrypted_content is already base64 for files
             const base64Data = result.decrypted_content;
+            
+            if (isImage || isVideo || isAudio) {
+                // For media files, show inline viewer
+                contentHtml += `
+                    <div class="form-group">
+                        <button onclick="viewMediaInCard('${contentId}', '${result.metadata.content_type}', '${base64Data}', '${result.metadata.filename}', '${isImage ? 'image' : isVideo ? 'video' : 'audio'}')" class="btn btn-primary" style="width: 100%;">
+                            <i class="fas fa-eye"></i> View ${isImage ? 'Image' : isVideo ? 'Video' : isAudio ? 'Audio' : 'Content'}
+                        </button>
+                        <div id="${contentId}" class="media-card-view" style="display: none; margin-top: 1rem; padding: 1rem; background: var(--card-bg); border-radius: 8px; text-align: center;"></div>
+                    </div>
+                `;
+            } else {
+                // For other files (PDFs, documents, etc.), show download button
+                contentHtml += `
+                    <div class="form-group">
+                        <button onclick="downloadDecryptedFileData('${base64Data}', '${result.metadata.filename}', '${result.metadata.content_type}')" class="btn btn-primary" style="width: 100%;">
+                            <i class="fas fa-download"></i> Download File
+                        </button>
+                    </div>
+                `;
+            }
+            
             contentHtml += `
-                <div class="form-group">
-                    <button onclick="viewMediaInCard('${contentId}', '${result.metadata.content_type}', '${base64Data}', '${result.metadata.filename}', '${isImage ? 'image' : isVideo ? 'video' : 'audio'}')" class="btn btn-primary" style="width: 100%;">
-                        <i class="fas fa-eye"></i> View ${isImage ? 'Image' : isVideo ? 'Video' : isAudio ? 'Audio' : 'Content'}
-                    </button>
-                    <div id="${contentId}" class="media-card-view" style="display: none; margin-top: 1rem; padding: 1rem; background: var(--card-bg); border-radius: 8px; text-align: center;"></div>
-                </div>
                 <div class="success-message">
-                    <i class="fas fa-shield-check"></i> Content decrypted successfully! Click "View" to see it.
+                    <i class="fas fa-shield-check"></i> Content decrypted successfully!
                 </div>
                 <p style="color: var(--text-muted); margin-top: 1rem; text-align: center;">
                     <i class="fas fa-info-circle"></i> To share this content, download the QR code above instead.
@@ -392,6 +445,37 @@ window.downloadDecryptedFile = async function(contentId) {
         showError('Failed to download file');
     }
 };
+
+window.downloadDecryptedFileData = function(base64Data, filename, contentType) {
+    try {
+        // Convert base64 to blob
+        const byteCharacters = atob(base64Data);
+        const byteNumbers = new Array(byteCharacters.length);
+        for (let i = 0; i < byteCharacters.length; i++) {
+            byteNumbers[i] = byteCharacters.charCodeAt(i);
+        }
+        const byteArray = new Uint8Array(byteNumbers);
+        const blob = new Blob([byteArray], { type: contentType });
+        
+        // Create download link
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = filename;
+        document.body.appendChild(a);
+        a.click();
+        
+        // Cleanup
+        window.URL.revokeObjectURL(url);
+        document.body.removeChild(a);
+        
+        showSuccess(`Downloading ${filename}...`);
+    } catch (error) {
+        console.error('Download error:', error);
+        showError('Failed to download file');
+    }
+};
+
 
 function simulateQRScan(resultDiv) {
     const mockResult = {

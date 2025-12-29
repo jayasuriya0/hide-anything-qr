@@ -123,12 +123,21 @@ class Activity:
             sort=[('created_at', -1)]
         )
         
+        # Format last activity time properly
+        last_activity_time = None
+        if last_activity and last_activity.get('created_at'):
+            # Ensure datetime is timezone-aware
+            dt = last_activity['created_at']
+            if dt.tzinfo is None:
+                dt = dt.replace(tzinfo=timezone.utc)
+            last_activity_time = dt.isoformat()
+        
         return {
             'total_shares': stats.get('share_qr', 0),
             'total_scans': stats.get('scan_qr', 0),
             'total_friends_added': stats.get('add_friend', 0),
             'total_activities': sum(stats.values()),
-            'last_activity': last_activity['created_at'].isoformat() if last_activity else None
+            'last_activity': last_activity_time
         }
     
     def _format_activities(self, activities):

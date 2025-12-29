@@ -21,9 +21,9 @@ def register():
         data = request.get_json()
         print(f"Received data: {data}")
         
-        # Validate input
-        email = data.get('email', '').strip().lower() if data.get('email') else None
-        phone = data.get('phone', '').strip() if data.get('phone') else None
+        # Validate input - convert empty strings to None
+        email = data.get('email', '').strip().lower() if data.get('email') and data.get('email').strip() else None
+        phone = data.get('phone', '').strip() if data.get('phone') and data.get('phone').strip() else None
         username = sanitize_html(data.get('username', '').strip())
         password = data.get('password', '')
         
@@ -86,9 +86,16 @@ def register():
 def login():
     try:
         data = request.get_json()
-        identifier = sanitize_html(data.get('email') or data.get('phone', ''))
-        identifier = identifier.strip().lower() if data.get('email') else identifier.strip()
+        email = data.get('email', '').strip() if data.get('email') else None
+        phone = data.get('phone', '').strip() if data.get('phone') else None
         password = data.get('password', '')
+        
+        # Determine the identifier based on which field is provided
+        identifier = None
+        if email:
+            identifier = sanitize_html(email).lower()
+        elif phone:
+            identifier = sanitize_html(phone)
         
         if not identifier or not password:
             return jsonify({'error': 'Email/phone and password required'}), 400
@@ -98,6 +105,21 @@ def login():
         
         if not user:
             return jsonify({'error': 'Invalid credentials'}), 401
+        
+        # Decrypt the user's private key with their password
+        try:
+            from utils.encryption import decrypt_private_key
+            encrypted_private_key = user.get('private_key_encrypted')
+            if encrypted_private_key:
+                decrypted_private_key = decrypt_private_key(encrypted_private_key, password)
+                # Store decrypted private key in the user document (in memory, not persisted)
+                # Update user document to include decrypted private key for this session
+                user_model.collection.update_one(
+                    {'_id': user['_id']},
+                    {'$set': {'private_key': decrypted_private_key}}
+                )
+        except Exception as e:
+            print(f"Warning: Could not decrypt private key: {e}")
         
         # Generate tokens
         access_token = create_access_token(identity=str(user['_id']))
@@ -115,7 +137,10 @@ def login():
         }), 200
         
     except Exception as e:
-        return jsonify({'error': 'Login failed'}), 500
+        print(f"Login Exception: {e}")
+        import traceback
+        traceback.print_exc()
+        return jsonify({'error': f'Login failed: {str(e)}'}), 500
 
 @auth_bp.route('/refresh', methods=['POST'])
 @jwt_required(refresh=True)

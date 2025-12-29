@@ -42,10 +42,26 @@ def get_profile():
         except:
             friends_count = len(user.get('friends', []))
         
+        # Get active and deleted QR counts
+        total_qr_generated = db.shared_content.count_documents({
+            'sender_id': ObjectId(user_id)
+        })
+        active_qr_count = db.shared_content.count_documents({
+            'sender_id': ObjectId(user_id),
+            'is_active': True
+        })
+        deleted_qr_count = db.shared_content.count_documents({
+            'sender_id': ObjectId(user_id),
+            'is_active': False
+        })
+        
         content_stats = {
             'friends_count': friends_count,
             'content_shared': db.shared_content.count_documents({'sender_id': ObjectId(user_id)}),
-            'content_received': db.shared_content.count_documents({'receiver_id': ObjectId(user_id)})
+            'content_received': db.shared_content.count_documents({'receiver_id': ObjectId(user_id)}),
+            'total_qr_generated': total_qr_generated,
+            'active_qr_count': active_qr_count,
+            'deleted_qr_count': deleted_qr_count
         }
         content_stats.update(stats)
         

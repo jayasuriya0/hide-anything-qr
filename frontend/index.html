@@ -35,7 +35,12 @@
                 </div>
                 <div class="form-group">
                     <label class="form-label">Password</label>
-                    <input type="password" id="loginPassword" class="form-input" placeholder="Enter your password" required>
+                    <div class="password-input-wrapper">
+                        <input type="password" id="loginPassword" class="form-input" placeholder="Enter your password" required>
+                        <button type="button" class="password-toggle-btn" onclick="togglePasswordVisibility('loginPassword')">
+                            <i class="fas fa-eye" id="loginPassword-icon"></i>
+                        </button>
+                    </div>
                 </div>
                 <button type="submit" class="btn btn-primary btn-block">
                     <i class="fas fa-sign-in-alt"></i> Login
@@ -66,7 +71,12 @@
                 </div>
                 <div class="form-group">
                     <label class="form-label">Password</label>
-                    <input type="password" id="registerPassword" class="form-input" placeholder="Choose a password (min 8 chars)" required>
+                    <div class="password-input-wrapper">
+                        <input type="password" id="registerPassword" class="form-input" placeholder="Choose a password (min 8 chars)" required>
+                        <button type="button" class="password-toggle-btn" onclick="togglePasswordVisibility('registerPassword')">
+                            <i class="fas fa-eye" id="registerPassword-icon"></i>
+                        </button>
+                    </div>
                 </div>
                 <button type="submit" class="btn btn-primary btn-block">
                     <i class="fas fa-user-plus"></i> Register
@@ -195,8 +205,18 @@
                                 <i class="fas fa-qrcode"></i>
                             </div>
                             <div class="stat-content">
-                                <h3>QR Codes Generated</h3>
-                                <div class="stat-number" id="qrCount">24</div>
+                                <h3>QR Generated</h3>
+                                <div class="stat-number" id="totalQrCount">0</div>
+                            </div>
+                        </div>
+                        
+                        <div class="stat-card">
+                            <div class="stat-icon">
+                                <i class="fas fa-check-circle"></i>
+                            </div>
+                            <div class="stat-content">
+                                <h3>Active QR Codes</h3>
+                                <div class="stat-number" id="activeQrCount">0</div>
                             </div>
                         </div>
                         
@@ -206,17 +226,17 @@
                             </div>
                             <div class="stat-content">
                                 <h3>Friends</h3>
-                                <div class="stat-number" id="friendCount">8</div>
+                                <div class="stat-number" id="friendCount">0</div>
                             </div>
                         </div>
                         
                         <div class="stat-card">
                             <div class="stat-icon">
-                                <i class="fas fa-shield-alt"></i>
+                                <i class="fas fa-trash-alt"></i>
                             </div>
                             <div class="stat-content">
-                                <h3>Files Encrypted</h3>
-                                <div class="stat-number" id="fileCount">42</div>
+                                <h3>QR Deleted</h3>
+                                <div class="stat-number" id="deletedQrCount">0</div>
                             </div>
                         </div>
                         
@@ -904,24 +924,6 @@
                                 <p>Downloaded file from QR scan</p>
                                 <span class="time">2 days ago</span>
                             </div>
-                        </div>
-                    </div>
-                </div>
-
-                <div class="sidebar-section">
-                    <h3>Quick Stats</h3>
-                    <div class="quick-stats">
-                        <div class="quick-stat">
-                            <span>Active QR Codes</span>
-                            <strong>12</strong>
-                        </div>
-                        <div class="quick-stat">
-                            <span>Scanned Today</span>
-                            <strong>3</strong>
-                        </div>
-                        <div class="quick-stat">
-                            <span>Storage Used</span>
-                            <strong>2.3 GB</strong>
                         </div>
                     </div>
                 </div>

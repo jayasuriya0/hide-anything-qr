@@ -27,18 +27,18 @@ from config.security import (
 try:
     validate_environment()
 except ValueError as e:
-    print(f"❌ Configuration Error: {e}")
+    print(f"[ERROR] Configuration Error: {e}")
     if is_production():
         raise  # Fail fast in production
     else:
-        print("⚠️ Running in development mode with weak keys - DO NOT USE IN PRODUCTION!")
+        print("[WARNING] Running in development mode with weak keys - DO NOT USE IN PRODUCTION!")
 
 # Initialize Flask app
 app = Flask(__name__, static_folder='../frontend', static_url_path='')
 
 # Configure CORS with restricted origins
 allowed_origins = get_allowed_origins()
-print(f"🔒 CORS allowed origins: {allowed_origins}")
+print(f"[SECURITY] CORS allowed origins: {allowed_origins}")
 
 CORS(app, 
      supports_credentials=True,
@@ -107,13 +107,13 @@ try:
         connection_params['directConnection'] = False
         connection_params['retryReads'] = True
     
-    print(f"🔗 Connecting to MongoDB with TLS parameters...")
+    print(f"[INFO] Connecting to MongoDB with TLS parameters...")
     mongo_client = MongoClient(mongo_uri, **connection_params)
     # Test connection with longer timeout
     mongo_client.admin.command('ping')
-    print("✅ MongoDB connected successfully")
+    print("[SUCCESS] MongoDB connected successfully")
 except Exception as e:
-    print(f"❌ MongoDB connection failed: {e}")
+    print(f"[ERROR] MongoDB connection failed: {e}")
     print(f"   Connection URI (masked): mongodb+srv://***@{mongo_uri.split('@')[1] if '@' in mongo_uri else 'unknown'}")
     # Create a dummy client for development
     mongo_client = None

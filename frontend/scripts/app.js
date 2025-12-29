@@ -187,6 +187,11 @@ async function loadInitialData() {
             initActivityFeed();
         }
         
+        // Load activity stats for dashboard
+        if (typeof loadActivityStats !== 'undefined') {
+            loadActivityStats();
+        }
+        
         // Initialize notifications
         if (typeof initNotifications !== 'undefined') {
             initNotifications();
@@ -903,9 +908,33 @@ function setupEventListeners() {
     if (loginForm) {
         loginForm.addEventListener('submit', async (e) => {
             e.preventDefault();
-            const email = document.getElementById('loginEmail').value.trim();
-            const phone = document.getElementById('loginPhone').value.trim();
+            
+            // Determine which mode is active
+            const emailGroup = document.getElementById('loginEmailGroup');
+            const isEmailMode = !emailGroup.classList.contains('hidden');
+            
+            let email = '';
+            let phone = '';
             const password = document.getElementById('loginPassword').value;
+            
+            if (isEmailMode) {
+                email = document.getElementById('loginEmail').value.trim();
+                if (!email) {
+                    showError('Please enter your email address');
+                    return;
+                }
+            } else {
+                phone = document.getElementById('loginPhone').value.trim();
+                if (!phone) {
+                    showError('Please enter your phone number');
+                    return;
+                }
+            }
+            
+            if (!password) {
+                showError('Please enter your password');
+                return;
+            }
             
             const result = await login(email, phone, password);
             if (result.success) {
@@ -920,10 +949,39 @@ function setupEventListeners() {
     if (registerForm) {
         registerForm.addEventListener('submit', async (e) => {
             e.preventDefault();
-            const email = document.getElementById('registerEmail').value.trim();
-            const phone = document.getElementById('registerPhone').value.trim();
+            
+            // Determine which mode is active
+            const emailGroup = document.getElementById('registerEmailGroup');
+            const isEmailMode = !emailGroup.classList.contains('hidden');
+            
+            let email = '';
+            let phone = '';
             const username = document.getElementById('registerUsername').value.trim();
             const password = document.getElementById('registerPassword').value;
+            
+            if (!username) {
+                showError('Please enter a username');
+                return;
+            }
+            
+            if (isEmailMode) {
+                email = document.getElementById('registerEmail').value.trim();
+                if (!email) {
+                    showError('Please enter your email address');
+                    return;
+                }
+            } else {
+                phone = document.getElementById('registerPhone').value.trim();
+                if (!phone) {
+                    showError('Please enter your phone number');
+                    return;
+                }
+            }
+            
+            if (!password) {
+                showError('Please enter a password');
+                return;
+            }
             
             const result = await register(email, phone, username, password);
             if (result.success) {

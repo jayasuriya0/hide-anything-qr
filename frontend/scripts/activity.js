@@ -16,13 +16,22 @@ async function loadActivityFeed() {
 // Load user statistics
 async function loadActivityStats() {
     try {
-        const response = await apiRequest('/activity/stats');
+        console.log('[loadActivityStats] Fetching stats from /profile endpoint...');
+        const response = await apiRequest('/profile');
         if (response.ok) {
-            const stats = await response.json();
-            updateDashboardStats(stats);
+            const profile = await response.json();
+            console.log('[loadActivityStats] Profile response:', profile);
+            console.log('[loadActivityStats] Stats from profile:', profile.stats);
+            if (profile.stats) {
+                updateDashboardStats(profile.stats);
+            } else {
+                console.warn('[loadActivityStats] No stats found in profile response');
+            }
+        } else {
+            console.error('[loadActivityStats] Failed to fetch profile, status:', response.status);
         }
     } catch (error) {
-        console.error('Failed to load activity stats:', error);
+        console.error('[loadActivityStats] Error loading activity stats:', error);
     }
 }
 
@@ -96,19 +105,38 @@ function formatTimeAgo(date) {
 function updateDashboardStats(stats) {
     console.log('Updating dashboard stats:', stats);
     
-    const qrCountEl = document.getElementById('qrCount');
-    const fileCountEl = document.getElementById('fileCount');
+    const totalQrCountEl = document.getElementById('totalQrCount');
+    const activeQrCountEl = document.getElementById('activeQrCount');
+    const deletedQrCountEl = document.getElementById('deletedQrCount');
     const friendCountEl = document.getElementById('friendCount');
     const lastActivityEl = document.querySelector('.stat-card:last-child .stat-number');
     
-    // Update QR codes generated count
-    if (qrCountEl) {
-        qrCountEl.textContent = stats.total_shares || 0;
+    // Update Total QR Generated count
+    if (totalQrCountEl) {
+        const count = stats.total_qr_generated || stats.content_shared || 0;
+        console.log('Setting totalQrCount to:', count);
+        totalQrCountEl.textContent = count;
     }
     
-    // Update files encrypted count  
-    if (fileCountEl) {
-        fileCountEl.textContent = stats.total_shares || 0;
+    // Update Active QR codes count
+    if (activeQrCountEl) {
+        const count = stats.active_qr_count || 0;
+        console.log('Setting activeQrCount to:', count);
+        activeQrCountEl.textContent = count;
+    }
+    
+    // Update Deleted QR codes count
+    if (deletedQrCountEl) {
+        const count = stats.deleted_qr_count || 0;
+        console.log('Setting deletedQrCount to:', count);
+        deletedQrCountEl.textContent = count;
+    }
+    
+    // Update friends count from backend stats
+    if (friendCountEl) {
+        const count = stats.friends_count || 0;
+        console.log('Setting friendCount to:', count);
+        friendCountEl.textContent = count;
     }
     
     // Update friends count

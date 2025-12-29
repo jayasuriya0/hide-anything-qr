@@ -1,5 +1,6 @@
 from flask import Blueprint, request, jsonify, send_file, current_app
 from flask_jwt_extended import jwt_required, get_jwt_identity
+from bson import ObjectId
 import base64
 from io import BytesIO
 from routes.helpers import get_user_model, get_db, get_socketio, get_content_model, get_encryption_manager, get_qr_generator, get_activity_model, get_notification_model
@@ -141,6 +142,95 @@ def share_text():
         }), 201
         
     except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+@content_bp.route('/send-qr-email', methods=['POST'])
+@jwt_required()
+def send_qr_email():
+    """Send QR code to receiver's email"""
+    try:
+        user_id = get_jwt_identity()
+        data = request.get_json()
+        
+        receiver_id = data.get('receiver_id')
+        content_id = data.get('content_id')
+        metadata = data.get('metadata', {})
+        
+        if not receiver_id or not content_id:
+            return jsonify({'error': 'Receiver ID and Content ID required'}), 400
+        
+        # Get user models
+        user_model = get_user_model()
+        sender = user_model.get_by_id(user_id)
+        receiver = user_model.get_by_id(receiver_id)
+        
+        if not receiver:
+            return jsonify({'error': 'Receiver not found'}), 404
+        
+        receiver_email = receiver.get('email')
+        if not receiver_email:
+            return jsonify({'error': 'Receiver email not available'}), 400
+        
+        # Get content to generate QR again
+        content_model = get_content_model()
+        content = content_model.collection.find_one({'_id': ObjectId(content_id)})
+        
+        if not content:
+            return jsonify({'error': 'Content not found'}), 404
+        
+        # Generate QR code
+        qr_data = {
+            'content_id': content_id,
+            'encrypted_key': content.get('encrypted_aes_key'),
+            'sender_id': user_id,
+            'metadata': metadata
+        }
+        
+        qr_generator = get_qr_generator()
+        qr_code = qr_generator.generate_qr_code(qr_data)
+        
+        # Send email using email_notifier
+        try:
+            from utils.email_notifier import send_qr_email as send_email
+            
+            sender_name = sender.get('username', 'A friend')
+            content_type = metadata.get('content_type', 'content')
+            encryption_level = metadata.get('encryption', 'standard')
+            
+            success = send_email(
+                receiver_email=receiver_email,
+                sender_name=sender_name,
+                qr_code_base64=qr_code,
+                content_type=content_type,
+                encryption_level=encryption_level
+            )
+            
+            if success:
+                current_app.logger.info(f"✅ QR Code email sent to {receiver_email}")
+                return jsonify({
+                    'message': 'QR code email sent successfully',
+                    'receiver': receiver.get('username')
+                }), 200
+            else:
+                current_app.logger.error(f"❌ Failed to send email to {receiver_email}")
+                return jsonify({
+                    'error': 'Failed to send email. Please check server logs.',
+                    'receiver': receiver.get('username')
+                }), 500
+                
+        except Exception as email_error:
+            current_app.logger.error(f"Email sending failed: {str(email_error)}")
+            import traceback
+            traceback.print_exc()
+            return jsonify({
+                'error': f'Email service error: {str(email_error)}',
+                'receiver': receiver.get('username')
+            }), 500
+        
+    except Exception as e:
+        current_app.logger.error(f"Error sending QR email: {str(e)}")
+        import traceback
+        traceback.print_exc()
         return jsonify({'error': str(e)}), 500
 
 @content_bp.route('/share/file', methods=['POST'])
@@ -290,9 +380,21 @@ def decode_content():
         if not qr_data:
             return jsonify({'error': 'QR data required'}), 400
         
-        # Parse QR data (in real app, this comes from scanning)
-        # For now, assume qr_data is the content_id
-        content_id = qr_data
+        # Decode secure QR data if it's in encoded format
+        qr_generator = get_qr_generator()
+        try:
+            # Try to decode if it's secure format (new or old scheme)
+            if isinstance(qr_data, str) and ('qrs://' in qr_data or 'hideanythingqr://' in qr_data or len(qr_data) > 50):
+                decoded_data = qr_generator.decode_secure_data(qr_data)
+                if isinstance(decoded_data, dict) and 'content_id' in decoded_data:
+                    content_id = decoded_data['content_id']
+                else:
+                    content_id = qr_data
+            else:
+                content_id = qr_data
+        except:
+            # If decoding fails, use as-is
+            content_id = qr_data
         
         # Get content
         content_model = get_content_model()
@@ -322,6 +424,7 @@ def decode_content():
         # Decrypt the content
         encryption = get_encryption_manager()
         decrypted_data = None
+        decryption_error = None
         
         try:
             # Get AES key first
@@ -331,11 +434,29 @@ def decode_content():
                 aes_key = base64.b64decode(content['encrypted_key'])
             else:
                 # For private content, decrypt AES key with RSA
-                user_private_key = user.get('private_key')
-                if not user_private_key:
-                    decrypted_data = None
-                    raise Exception("Private key not found")
-                aes_key = encryption.decrypt_aes_key(content['encrypted_key'], user_private_key)
+                # Check if current user is the receiver
+                receiver_id = content.get('receiver_id')
+                if not receiver_id:
+                    # No specific receiver, use public decryption
+                    import base64
+                    aes_key = base64.b64decode(content['encrypted_key'])
+                elif str(receiver_id) != user_id:
+                    # User is not the receiver, check if sender
+                    if str(content['sender_id']) == user_id:
+                        # Sender viewing their own content
+                        # Use sender's private key
+                        user_private_key = user.get('private_key')
+                        if not user_private_key:
+                            raise Exception("Your private key not found. Please log out and log in again to decrypt content.")
+                        aes_key = encryption.decrypt_aes_key(content['encrypted_key'], user_private_key)
+                    else:
+                        raise Exception("You are not authorized to decrypt this content. It was shared with someone else.")
+                else:
+                    # Current user is the receiver
+                    user_private_key = user.get('private_key')
+                    if not user_private_key:
+                        raise Exception("Your private key not found. Please log out and log in again to decrypt content.")
+                    aes_key = encryption.decrypt_aes_key(content['encrypted_key'], user_private_key)
             
             # Get encrypted data
             if content['metadata'].get('type') == 'file' and 'file_id' in content:
@@ -359,10 +480,11 @@ def decode_content():
                 decrypted_data = base64.b64encode(decrypted_data).decode('utf-8')
             
         except Exception as e:
-            print(f"Decryption exception: {e}")
+            print(f"[DECRYPTION ERROR] {e}")
             import traceback
             traceback.print_exc()
             decrypted_data = None
+            decryption_error = str(e)
         
         # Mark as viewed
         content_model.mark_as_viewed(content_id)
@@ -409,8 +531,13 @@ def decode_content():
             'metadata': content['metadata'],
             'created_at': content['created_at'].isoformat() if content.get('created_at') else None,
             'decrypted_content': decrypted_data,
-            'is_encrypted': decrypted_data is None
+            'is_encrypted': decrypted_data is None,
+            'decryption_error': decryption_error
         }
+        
+        # If decryption failed, include encrypted data for debugging (only first 200 chars)
+        if decrypted_data is None:
+            response_data['encrypted_data'] = content.get('encrypted_data', '')[:200] if content.get('encrypted_data') else None
         
         # If it's a file, provide download link
         if content['metadata'].get('type') == 'file' and 'file_id' in content:

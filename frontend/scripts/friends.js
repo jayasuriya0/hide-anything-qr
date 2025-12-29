@@ -86,15 +86,41 @@ window.rejectFriendRequest = async function(requestId) {
     }
 };
 
-window.sendFriendRequestTo = async function(userId) {
+window.sendFriendRequestTo = async function(userId, buttonElement) {
     try {
+        // Get the button element if not passed
+        if (!buttonElement) {
+            buttonElement = event.target.closest('button');
+        }
+        
+        // Disable button and show loading
+        if (buttonElement) {
+            buttonElement.disabled = true;
+            buttonElement.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Sending...';
+        }
+        
         const result = await sendFriendRequest(userId, 'Hello!');
         showSuccess('Friend request sent!');
+        
+        // Update button to show request sent
+        if (buttonElement) {
+            buttonElement.className = 'btn btn-secondary';
+            buttonElement.innerHTML = '<i class="fas fa-check"></i> Request Sent';
+            buttonElement.disabled = true;
+            buttonElement.style.cursor = 'not-allowed';
+        }
+        
         if (result.qr_code) {
             generateQRCode(result.qr_code);
         }
     } catch (error) {
         showError(error.message);
+        // Reset button on error
+        if (buttonElement) {
+            buttonElement.disabled = false;
+            buttonElement.className = 'btn btn-primary';
+            buttonElement.innerHTML = '<i class="fas fa-user-plus"></i> Add Friend';
+        }
     }
 };
 
@@ -117,7 +143,6 @@ function updateFriendsList() {
                 <div class="friend-avatar">${friend.username.charAt(0).toUpperCase()}</div>
                 <div>
                     <strong>${friend.username}</strong>
-                    <p class="text-muted" style="margin: 0; font-size: 0.9rem;">${friend.email}</p>
                 </div>
             </div>
             <div style="display: flex; gap: 0.5rem;">
@@ -156,7 +181,6 @@ async function updateFriendRequests() {
                     <div class="friend-avatar">${req.sender_username.charAt(0).toUpperCase()}</div>
                     <div>
                         <strong>${req.sender_username}</strong>
-                        <p class="text-muted" style="margin: 0; font-size: 0.9rem;">${req.sender_email || ''}</p>
                         ${req.message ? `<p class="text-muted" style="margin: 0.25rem 0 0 0; font-size: 0.85rem; font-style: italic;">"${req.message}"</p>` : ''}
                     </div>
                 </div>
@@ -194,9 +218,8 @@ function displaySearchResults(users) {
         userDiv.innerHTML = `
             <div>
                 <strong>${user.username}</strong>
-                <p class="text-muted" style="margin: 0; font-size: 0.9rem;">${user.email}</p>
             </div>
-            <button onclick="sendFriendRequestTo('${user._id}')" class="btn btn-primary">
+            <button onclick="sendFriendRequestTo('${user._id}', this)" class="btn btn-primary" data-user-id="${user._id}">
                 <i class="fas fa-user-plus"></i> Add Friend
             </button>
         `;

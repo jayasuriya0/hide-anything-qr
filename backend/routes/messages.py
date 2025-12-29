@@ -103,6 +103,14 @@ def get_conversation(friend_id):
             if msg['message_type'] == 'file' and 'file_data' in msg:
                 formatted_msg['file_data'] = msg['file_data']
             
+            # Add content_id if present
+            if 'content_id' in msg:
+                formatted_msg['content_id'] = msg['content_id']
+            
+            # Add metadata if present
+            if 'metadata' in msg:
+                formatted_msg['metadata'] = msg['metadata']
+            
             formatted_messages.append(formatted_msg)
         
         return jsonify({
@@ -132,6 +140,8 @@ def send_message():
         message_type = data.get('type', 'text')  # 'text', 'qr', 'file'
         qr_data = data.get('qr_data')
         file_data = data.get('file_data')
+        content_id = data.get('content_id')
+        metadata = data.get('metadata', {})
         
         if not receiver_id:
             return jsonify({'error': 'Receiver ID required'}), 400
@@ -164,6 +174,20 @@ def send_message():
             file_data=file_data
         )
         
+        # Add content_id and metadata if present
+        if content_id or metadata:
+            update_data = {}
+            if content_id:
+                update_data['content_id'] = content_id
+            if metadata:
+                update_data['metadata'] = metadata
+            if update_data:
+                message_model.collection.update_one(
+                    {'_id': message['_id']},
+                    {'$set': update_data}
+                )
+                message.update(update_data)
+        
         # Format response
         response = {
             'id': str(message['_id']),
@@ -178,6 +202,10 @@ def send_message():
             response['qr_data'] = qr_data
         if file_data:
             response['file_data'] = file_data
+        if content_id:
+            response['content_id'] = content_id
+        if metadata:
+            response['metadata'] = metadata
         
         return jsonify({'message': response}), 201
         

@@ -247,11 +247,23 @@ function renderMessages() {
         if (msg.type === 'text') {
             messageContent = `<p class="message-text">${escapeHtml(msg.content)}</p>`;
         } else if (msg.type === 'qr') {
+            const metadata = msg.metadata || {};
+            const isSender = msg.is_sender;
             messageContent = `
-                <div class="message-qr">
-                    <i class="fas fa-qrcode"></i>
-                    <p>Shared a QR Code</p>
-                    ${msg.qr_data ? `<img src="${msg.qr_data}" alt="QR Code" style="max-width: 200px; border-radius: 8px; margin-top: 8px;">` : ''}
+                <div class="message-qr-notification">
+                    <div class="qr-notification-icon">
+                        <i class="fas fa-envelope"></i>
+                    </div>
+                    <div class="qr-notification-content">
+                        <strong>${isSender ? '📤 QR Code Sent' : '📬 QR Code Received'}</strong>
+                        <p>${isSender ? 'Check Shared section to manage your QR codes' : 'Check your email to view and scan the QR code'}</p>
+                        ${metadata.content_type || metadata.encryption ? `
+                            <div class="qr-meta-tags">
+                                ${metadata.content_type ? `<span class="meta-tag"><i class="fas fa-${metadata.content_type === 'file' ? 'file' : 'comment'}"></i> ${metadata.content_type}</span>` : ''}
+                                ${metadata.encryption ? `<span class="meta-tag"><i class="fas fa-shield-alt"></i> ${metadata.encryption}</span>` : ''}
+                            </div>
+                        ` : ''}
+                    </div>
                 </div>
             `;
         } else if (msg.type === 'file') {
@@ -272,6 +284,111 @@ function renderMessages() {
             </div>
         `;
     }).join('');
+}
+
+// Send QR email notification to friend
+async function sendQREmailNotification(friendId, contentId, contentType, encryption, expiration) {
+    try {
+        const token = localStorage.getItem('token');
+        const response = await fetch(`${getApiUrl()}/content/send-qr-email`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${token}`
+            },
+            body: JSON.stringify({
+                receiver_id: friendId,
+                content_id: contentId,
+                metadata: {
+                    content_type: contentType,
+                    encryption: encryption,
+                    expiration: expiration
+                }
+            })
+        });
+
+        if (!response.ok) {
+            const error = await response.json();
+            console.error('Failed to send email:', error);
+        }
+    } catch (error) {
+        console.error('Error sending QR email:', error);
+    }
+}
+
+// Send simple text message
+async function sendSimpleMessage(messageText) {
+    if (!currentFriendId) return;
+    
+    try {
+        const token = localStorage.getItem('token');
+        const response = await fetch(`${getApiUrl()}/messages/send`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${token}`
+            },
+            body: JSON.stringify({
+                receiver_id: currentFriendId,
+                content: messageText,
+                type: 'text'
+            })
+        });
+
+        if (response.ok) {
+            const data = await response.json();
+            messages.push(data.message);
+            renderMessages();
+            scrollToBottom();
+            await loadConversations();
+        }
+    } catch (error) {
+        console.error('Error sending message:', error);
+    }
+}
+
+// Send QR code as message (legacy - keeping for backward compatibility)
+async function sendQRMessage(qrCodeData, contentId, contentType, encryption, expiration) {
+    if (!currentFriendId) return;
+    
+    try {
+        const token = localStorage.getItem('token');
+        const response = await fetch(`${getApiUrl()}/messages/send`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${token}`
+            },
+            body: JSON.stringify({
+                receiver_id: currentFriendId,
+                content: `Shared a QR Code`,
+                type: 'qr',
+                qr_data: qrCodeData,
+                content_id: contentId,
+                metadata: {
+                    content_type: contentType,
+                    encryption: encryption,
+                    expiration: expiration
+                }
+            })
+        });
+
+        if (response.ok) {
+            const data = await response.json();
+            messages.push(data.message);
+            renderMessages();
+            scrollToBottom();
+            
+            // Refresh conversations
+            await loadConversations();
+        } else {
+            const error = await response.json();
+            showToast(error.error || 'Failed to send QR code', 'error');
+        }
+    } catch (error) {
+        console.error('Error sending QR message:', error);
+        showToast('Failed to send QR code', 'error');
+    }
 }
 
 // Send a message
@@ -317,9 +434,19 @@ async function sendMessage() {
 
 // Show share QR modal
 async function showShareQRModal() {
-    if (!currentFriendId) return;
+    if (!currentFriendId) {
+        showToast('Please select a friend to share with', 'error');
+        return;
+    }
 
-    const currentFriendName = document.getElementById('chatFriendName').textContent;
+    const chatFriendNameElement = document.getElementById('chatFriendName');
+    const currentFriendName = chatFriendNameElement ? chatFriendNameElement.textContent : 'Friend';
+    
+    // Remove any existing modal first
+    const existingModal = document.querySelector('.modal-overlay');
+    if (existingModal) {
+        existingModal.remove();
+    }
     
     // Create share QR modal with card-like design
     const modal = document.createElement('div');
@@ -419,7 +546,12 @@ async function showShareQRModal() {
     document.body.appendChild(modal);
     
     // Focus on text input
-    setTimeout(() => document.getElementById('qrTextContent').focus(), 100);
+    setTimeout(() => {
+        const textInput = document.getElementById('qrTextContent');
+        if (textInput) {
+            textInput.focus();
+        }
+    }, 100);
 }
 
 // Select QR content type
@@ -535,14 +667,21 @@ window.shareQRCodeToFriend = async function() {
         
         const result = await response.json();
         
-        // Close modal
-        document.querySelector('.modal-overlay').remove();
+        // Close modal - check if it exists first
+        const modal = document.querySelector('.modal-overlay');
+        if (modal) {
+            modal.remove();
+        }
         
-        // Send message in chat with QR info
-        const friendName = document.getElementById('chatFriendName').textContent;
-        await sendMessage(`🎁 Shared a QR Code: ${contentType === 'text' ? 'Text Message' : fileInput.files[0].name}\n\n🔒 Encryption: ${encryption}\n⏰ Expires: ${expiration ? formatExpiration(expiration) : 'Never'}\n\nScan the QR code I generated for you!`, 'qr_share', result.content_id);
+        // Send email notification to receiver
+        await sendQREmailNotification(currentFriendId, result.content_id, contentType, encryption, expiration);
         
-        showToast('QR Code generated and shared successfully!', 'success');
+        // Send simple text message in chat
+        const friendName = document.getElementById('chatFriendName')?.textContent || 'Friend';
+        const messageText = `🎁 I've sent you a QR Code!\n\n📧 Check your email to view and scan the QR code.\n🔒 Encryption: ${encryption}\n⏰ Expires: ${expiration ? formatExpiration(expiration) : 'Never'}`;
+        await sendSimpleMessage(messageText);
+        
+        showToast('QR Code sent to email!', 'success');
         
         // Refresh shared page in background
         if (typeof loadSharedContent === 'function') {
@@ -552,6 +691,12 @@ window.shareQRCodeToFriend = async function() {
     } catch (error) {
         console.error('Error sharing QR:', error);
         showToast(error.message || 'Failed to share QR code', 'error');
+        
+        // Try to close modal on error too
+        const modal = document.querySelector('.modal-overlay');
+        if (modal) {
+            modal.remove();
+        }
     }
 }
 
@@ -779,3 +924,88 @@ function stopMessagePolling() {
 window.addEventListener('beforeunload', () => {
     stopMessagePolling();
 });
+
+// Download QR code from shared content (for QR codes on Shared page)
+window.downloadQRCode = function(messageId, qrDataUrl) {
+    try {
+        // If called from modal without parameters, use currentQRData
+        if (!messageId && !qrDataUrl && window.currentQRData) {
+            const link = document.createElement('a');
+            link.href = `data:image/png;base64,${window.currentQRData}`;
+            link.download = `secure-qr-${Date.now()}.png`;
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            showToast('QR Code downloaded successfully!', 'success');
+            return;
+        }
+        
+        // Validate parameters
+        if (!qrDataUrl) {
+            console.error('No QR data URL provided');
+            showToast('Failed to download QR code. No data available.', 'error');
+            return;
+        }
+        
+        // Convert base64 to blob if needed
+        let downloadUrl = qrDataUrl;
+        
+        if (qrDataUrl.startsWith('data:image')) {
+            // It's already a data URL, we can use it directly
+            const link = document.createElement('a');
+            link.href = qrDataUrl;
+            link.download = `qr-code-${messageId || Date.now()}.png`;
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+        } else if (qrDataUrl.startsWith('http')) {
+            // It's a URL, fetch and download
+            fetch(qrDataUrl)
+                .then(res => res.blob())
+                .then(blob => {
+                    const url = window.URL.createObjectURL(blob);
+                    const link = document.createElement('a');
+                    link.href = url;
+                    link.download = `qr-code-${messageId || Date.now()}.png`;
+                    document.body.appendChild(link);
+                    link.click();
+                    document.body.removeChild(link);
+                    window.URL.revokeObjectURL(url);
+                });
+        } else {
+            // If it's base64 without data URL prefix, add it
+            const link = document.createElement('a');
+            link.href = `data:image/png;base64,${qrDataUrl}`;
+            link.download = `qr-code-${messageId || Date.now()}.png`;
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+        }
+        
+        showToast('QR Code downloaded successfully!', 'success');
+    } catch (error) {
+        console.error('Error downloading QR code:', error);
+        showToast('Failed to download QR code. Please try again.', 'error');
+    }
+};
+
+// Scan QR code from message (legacy - navigate to scan page)
+window.scanQRFromMessage = function(contentId) {
+    // Navigate to scan page and trigger scan for this content
+    const scanTab = document.querySelector('[data-section=\"scan\"]');
+    if (scanTab) {
+        scanTab.click();
+        
+        // Wait for scan page to load, then trigger camera
+        setTimeout(() => {
+            // Trigger the camera/scan functionality
+            if (typeof startScanning === 'function') {
+                startScanning();
+                showToast('Point your camera at the QR code', 'info');
+            } else if (typeof window.startCamera === 'function') {
+                window.startCamera();
+                showToast('Point your camera at the QR code', 'info');
+            }
+        }, 500);
+    }
+};

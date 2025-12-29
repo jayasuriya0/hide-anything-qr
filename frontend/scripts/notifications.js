@@ -347,12 +347,24 @@ function stopNotificationPolling() {
 
 // Setup notification UI handlers
 function setupNotificationHandlers() {
-    // Toggle notification dropdown
-    const notificationBtn = document.getElementById('notificationBtn');
-    const dropdown = document.getElementById('notificationDropdown');
-    
-    if (notificationBtn && dropdown) {
-        notificationBtn.addEventListener('click', (e) => {
+    // Use setTimeout to ensure DOM is ready
+    setTimeout(() => {
+        // Toggle notification dropdown
+        const notificationBtn = document.getElementById('notificationBtn');
+        const dropdown = document.getElementById('notificationDropdown');
+        
+        if (!notificationBtn || !dropdown) {
+            console.warn('Notification elements not found, retrying...');
+            // Retry after a short delay
+            setTimeout(setupNotificationHandlers, 500);
+            return;
+        }
+        
+        // Remove any existing listeners
+        const newNotificationBtn = notificationBtn.cloneNode(true);
+        notificationBtn.parentNode.replaceChild(newNotificationBtn, notificationBtn);
+        
+        newNotificationBtn.addEventListener('click', (e) => {
             e.stopPropagation();
             const isVisible = dropdown.style.display === 'block';
             dropdown.style.display = isVisible ? 'none' : 'block';
@@ -361,26 +373,28 @@ function setupNotificationHandlers() {
                 loadNotifications();
             }
         });
-    }
-
-    // Close dropdown when clicking outside
-    document.addEventListener('click', (e) => {
-        if (dropdown && !dropdown.contains(e.target) && e.target !== notificationBtn) {
-            dropdown.style.display = 'none';
+        
+        // Close dropdown when clicking outside
+        document.addEventListener('click', (e) => {
+            if (dropdown && !dropdown.contains(e.target) && !newNotificationBtn.contains(e.target)) {
+                dropdown.style.display = 'none';
+            }
+        });
+        
+        // Mark all as read button
+        const markAllBtn = document.getElementById('markAllReadBtn');
+        if (markAllBtn) {
+            markAllBtn.addEventListener('click', markAllAsRead);
         }
-    });
-
-    // Mark all as read button
-    const markAllBtn = document.getElementById('markAllReadBtn');
-    if (markAllBtn) {
-        markAllBtn.addEventListener('click', markAllAsRead);
-    }
-
-    // Clear all button
-    const clearAllBtn = document.getElementById('clearAllBtn');
-    if (clearAllBtn) {
-        clearAllBtn.addEventListener('click', clearAllNotifications);
-    }
+        
+        // Clear all button
+        const clearAllBtn = document.getElementById('clearAllBtn');
+        if (clearAllBtn) {
+            clearAllBtn.addEventListener('click', clearAllNotifications);
+        }
+        
+        console.log('Notification handlers setup complete');
+    }, 100);
 }
 
 // Format time ago helper
