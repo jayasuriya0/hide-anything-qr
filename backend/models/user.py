@@ -5,31 +5,27 @@ from pymongo import IndexModel, ASCENDING
 from utils.encryption import generate_keypair, encrypt_private_key
 
 class User:
+    _indexes_created = False  # Class variable to track if indexes are created
+    
     def __init__(self, db):
         self.collection = db.users
-        self.create_indexes()
+        if not User._indexes_created:
+            self.create_indexes()
+            User._indexes_created = True
     
     def create_indexes(self):
-        # Drop existing indexes to avoid conflicts (except _id)
+        # Create indexes only once per application lifecycle
         try:
-            existing_indexes = self.collection.list_indexes()
-            for index in existing_indexes:
-                if index['name'] != '_id_':
-                    try:
-                        self.collection.drop_index(index['name'])
-                    except:
-                        pass
-        except:
-            pass
-        
-        # Create new indexes
-        indexes = [
-            IndexModel([('email', ASCENDING)], unique=True, sparse=True, name='email_unique_idx'),
-            IndexModel([('phone', ASCENDING)], unique=True, sparse=True, name='phone_unique_idx'),
-            IndexModel([('username', ASCENDING)], unique=True, name='username_unique_idx'),
-            IndexModel([('created_at', ASCENDING)], name='created_at_idx'),
-        ]
-        self.collection.create_indexes(indexes)
+            # Create new indexes (MongoDB will skip if they already exist)
+            indexes = [
+                IndexModel([('email', ASCENDING)], unique=True, sparse=True, name='email_unique_idx'),
+                IndexModel([('phone', ASCENDING)], unique=True, sparse=True, name='phone_unique_idx'),
+                IndexModel([('username', ASCENDING)], unique=True, name='username_unique_idx'),
+                IndexModel([('created_at', ASCENDING)], name='created_at_idx'),
+            ]
+            self.collection.create_indexes(indexes)
+        except Exception as e:
+            print(f"[WARNING] Failed to create indexes: {e}")
     
     def create_user(self, email=None, phone=None, username=None, password=None):
         # Validate that at least email or phone is provided

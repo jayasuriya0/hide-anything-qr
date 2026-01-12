@@ -10,17 +10,17 @@ print("Testing Email Configuration...")
 print("=" * 50)
 
 # Check environment variables
-mail_server = os.environ.get('MAIL_SERVER', 'Not set')
-mail_port = os.environ.get('MAIL_PORT', 'Not set')
-mail_username = os.environ.get('MAIL_USERNAME', 'Not set')
-mail_password = os.environ.get('MAIL_PASSWORD', 'Not set')
-mail_use_tls = os.environ.get('MAIL_USE_TLS', 'Not set')
+mail_server = os.environ.get('SMTP_HOST', 'Not set')
+mail_port = os.environ.get('SMTP_PORT', 'Not set')
+mail_username = os.environ.get('SMTP_USER', 'Not set')
+mail_password = os.environ.get('SMTP_PASSWORD', 'Not set')
+mail_use_tls = os.environ.get('SMTP_TLS', 'Not set')
 
-print(f"MAIL_SERVER: {mail_server}")
-print(f"MAIL_PORT: {mail_port}")
-print(f"MAIL_USERNAME: {mail_username}")
-print(f"MAIL_PASSWORD: {'*' * len(mail_password) if mail_password != 'Not set' else 'Not set'}")
-print(f"MAIL_USE_TLS: {mail_use_tls}")
+print(f"SMTP_HOST: {mail_server}")
+print(f"SMTP_PORT: {mail_port}")
+print(f"SMTP_USER: {mail_username}")
+print(f"SMTP_PASSWORD: {'*' * len(mail_password) if mail_password != 'Not set' else 'Not set'}")
+print(f"SMTP_TLS: {mail_use_tls}")
 print("=" * 50)
 
 # Test sending a simple email

@@ -4,18 +4,25 @@ from pymongo import IndexModel, ASCENDING, DESCENDING
 import gridfs
 
 class Message:
+    _indexes_created = False
+    
     def __init__(self, db):
         self.collection = db.messages
         self.fs = gridfs.GridFS(db)
-        self.create_indexes()
+        if not Message._indexes_created:
+            self.create_indexes()
+            Message._indexes_created = True
     
     def create_indexes(self):
-        indexes = [
-            IndexModel([('sender_id', ASCENDING), ('receiver_id', ASCENDING)]),
-            IndexModel([('created_at', DESCENDING)]),
-            IndexModel([('conversation_id', ASCENDING), ('created_at', ASCENDING)])
-        ]
-        self.collection.create_indexes(indexes)
+        try:
+            indexes = [
+                IndexModel([('sender_id', ASCENDING), ('receiver_id', ASCENDING)]),
+                IndexModel([('created_at', DESCENDING)]),
+                IndexModel([('conversation_id', ASCENDING), ('created_at', ASCENDING)])
+            ]
+            self.collection.create_indexes(indexes)
+        except Exception as e:
+            print(f"[WARNING] Failed to create Message indexes: {e}")
     
     def _get_conversation_id(self, user1_id, user2_id):
         """Generate consistent conversation ID for two users"""

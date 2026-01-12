@@ -89,13 +89,16 @@ try:
         else:
             mongo_uri = base_uri
     
-    # Connection parameters with aggressive TLS workaround for Python 3.11+
+    # Connection parameters with increased timeouts to prevent timeout errors
     connection_params = {
-        'serverSelectionTimeoutMS': 10000,
-        'connectTimeoutMS': 20000,
-        'socketTimeoutMS': 20000,
+        'serverSelectionTimeoutMS': 30000,  # Increased from 10s to 30s
+        'connectTimeoutMS': 30000,           # Increased from 20s to 30s
+        'socketTimeoutMS': 60000,            # Increased from 20s to 60s
         'retryWrites': True,
-        'w': 'majority'
+        'w': 'majority',
+        'maxPoolSize': 50,                   # Increase connection pool size
+        'minPoolSize': 10,                   # Keep some connections ready
+        'maxIdleTimeMS': 45000               # Keep idle connections longer
     }
     
     # For MongoDB Atlas, disable TLS verification completely

@@ -20,15 +20,15 @@ def send_qr_email(receiver_email, sender_name, qr_code_base64, content_type, enc
     """
     try:
         # Get email configuration from environment
-        mail_server = os.environ.get('MAIL_SERVER', 'smtp.gmail.com')
-        mail_port = int(os.environ.get('MAIL_PORT', 587))
-        mail_username = os.environ.get('MAIL_USERNAME', '')
-        mail_password = os.environ.get('MAIL_PASSWORD', '')
-        mail_use_tls = os.environ.get('MAIL_USE_TLS', 'true').lower() == 'true'
+        mail_server = os.environ.get('SMTP_HOST', 'smtp.gmail.com')
+        mail_port = int(os.environ.get('SMTP_PORT', 587))
+        mail_username = os.environ.get('SMTP_USER', '')
+        mail_password = os.environ.get('SMTP_PASSWORD', '')
+        mail_use_tls = os.environ.get('SMTP_TLS', 'true').lower() == 'true'
         
         if not mail_username or not mail_password:
             print("❌ Email credentials not configured in .env file")
-            print("Please set MAIL_USERNAME and MAIL_PASSWORD")
+            print("Please set SMTP_USER and SMTP_PASSWORD")
             return False
         
         print(f"📧 Attempting to send email to: {receiver_email}")
@@ -306,11 +306,11 @@ def send_simple_email(receiver_email, subject, body):
     Send a simple text email
     """
     try:
-        mail_server = os.environ.get('MAIL_SERVER', 'smtp.gmail.com')
-        mail_port = int(os.environ.get('MAIL_PORT', 587))
-        mail_username = os.environ.get('MAIL_USERNAME', '')
-        mail_password = os.environ.get('MAIL_PASSWORD', '')
-        mail_use_tls = os.environ.get('MAIL_USE_TLS', 'true').lower() == 'true'
+        mail_server = os.environ.get('SMTP_HOST', 'smtp.gmail.com')
+        mail_port = int(os.environ.get('SMTP_PORT', 587))
+        mail_username = os.environ.get('SMTP_USER', '')
+        mail_password = os.environ.get('SMTP_PASSWORD', '')
+        mail_use_tls = os.environ.get('SMTP_TLS', 'true').lower() == 'true'
         
         if not mail_username or not mail_password:
             print("Email credentials not configured")

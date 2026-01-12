@@ -194,8 +194,8 @@ def send_qr_email():
             from utils.email_notifier import send_qr_email as send_email
             
             sender_name = sender.get('username', 'A friend')
-            content_type = metadata.get('content_type', 'content')
-            encryption_level = metadata.get('encryption', 'standard')
+            content_type = metadata.get('type', 'content')
+            encryption_level = metadata.get('encryption_level', 'standard')
             
             success = send_email(
                 receiver_email=receiver_email,

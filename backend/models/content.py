@@ -4,19 +4,26 @@ from bson import ObjectId
 from pymongo import IndexModel, ASCENDING, DESCENDING
 
 class Content:
+    _indexes_created = False
+    
     def __init__(self, db):
         self.collection = db.shared_content
         self.fs = gridfs.GridFS(db)
-        self.create_indexes()
+        if not Content._indexes_created:
+            self.create_indexes()
+            Content._indexes_created = True
     
     def create_indexes(self):
-        indexes = [
-            IndexModel([('sender_id', ASCENDING)]),
-            IndexModel([('receiver_id', ASCENDING)]),
-            IndexModel([('created_at', DESCENDING)]),
-            IndexModel([('expires_at', ASCENDING)], expireAfterSeconds=0),
-        ]
-        self.collection.create_indexes(indexes)
+        try:
+            indexes = [
+                IndexModel([('sender_id', ASCENDING)]),
+                IndexModel([('receiver_id', ASCENDING)]),
+                IndexModel([('created_at', DESCENDING)]),
+                IndexModel([('expires_at', ASCENDING)], expireAfterSeconds=0),
+            ]
+            self.collection.create_indexes(indexes)
+        except Exception as e:
+            print(f"[WARNING] Failed to create Content indexes: {e}")
     
     def share_content(self, sender_id, receiver_id, encrypted_data, metadata, 
                      encrypted_key, expires_in=None):

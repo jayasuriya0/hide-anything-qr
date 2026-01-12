@@ -3,18 +3,25 @@ from bson import ObjectId
 from pymongo import IndexModel, ASCENDING, DESCENDING
 
 class Notification:
+    _indexes_created = False
+    
     def __init__(self, db):
         self.collection = db.notifications
-        self.create_indexes()
+        if not Notification._indexes_created:
+            self.create_indexes()
+            Notification._indexes_created = True
     
     def create_indexes(self):
-        indexes = [
-            IndexModel([('user_id', ASCENDING)]),
-            IndexModel([('read', ASCENDING)]),
-            IndexModel([('created_at', DESCENDING)]),
-            IndexModel([('type', ASCENDING)]),
-        ]
-        self.collection.create_indexes(indexes)
+        try:
+            indexes = [
+                IndexModel([('user_id', ASCENDING)]),
+                IndexModel([('read', ASCENDING)]),
+                IndexModel([('created_at', DESCENDING)]),
+                IndexModel([('type', ASCENDING)]),
+            ]
+            self.collection.create_indexes(indexes)
+        except Exception as e:
+            print(f"[WARNING] Failed to create Notification indexes: {e}")
     
     def create_notification(self, user_id, notification_type, message, data=None, related_user_id=None):
         """Create a new notification"""

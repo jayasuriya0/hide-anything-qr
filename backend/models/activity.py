@@ -3,18 +3,25 @@ from bson import ObjectId
 from pymongo import IndexModel, ASCENDING, DESCENDING
 
 class Activity:
+    _indexes_created = False
+    
     def __init__(self, db):
         self.collection = db.activities
-        self.create_indexes()
+        if not Activity._indexes_created:
+            self.create_indexes()
+            Activity._indexes_created = True
     
     def create_indexes(self):
-        indexes = [
-            IndexModel([('user_id', ASCENDING)]),
-            IndexModel([('created_at', DESCENDING)]),
-            IndexModel([('type', ASCENDING)]),
-            IndexModel([('visibility', ASCENDING)]),
-        ]
-        self.collection.create_indexes(indexes)
+        try:
+            indexes = [
+                IndexModel([('user_id', ASCENDING)]),
+                IndexModel([('created_at', DESCENDING)]),
+                IndexModel([('type', ASCENDING)]),
+                IndexModel([('visibility', ASCENDING)]),
+            ]
+            self.collection.create_indexes(indexes)
+        except Exception as e:
+            print(f"[WARNING] Failed to create Activity indexes: {e}")
     
     def log_activity(self, user_id, activity_type, description, metadata=None, visibility='friends'):
         """
