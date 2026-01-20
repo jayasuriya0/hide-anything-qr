@@ -249,10 +249,6 @@ async function deleteNotification(notificationId) {
 
 // Clear all notifications
 async function clearAllNotifications() {
-    if (!confirm('Are you sure you want to clear all notifications?')) {
-        return;
-    }
-
     try {
         const response = await fetch('/api/notifications/clear-all', {
             method: 'DELETE',

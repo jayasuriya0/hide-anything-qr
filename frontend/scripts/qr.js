@@ -1,16 +1,22 @@
 // QR Code Functions
 
 // Content Sharing
-async function shareText(text, receiverId = null, expiresIn = null, encryptionLevel = 'standard') {
+async function shareText(text, receiverId = null, expiresIn = null, encryptionLevel = 'standard', password = null, maxViews = null) {
     try {
+        const payload = {
+            text,
+            receiver_id: receiverId,
+            encryption_level: encryptionLevel
+        };
+        
+        // Add optional parameters only if they have values
+        if (expiresIn) payload.expires_in = expiresIn;
+        if (password) payload.password = password;
+        if (maxViews) payload.max_views = parseInt(maxViews);
+        
         const response = await apiRequest('/content/share/text', {
             method: 'POST',
-            body: JSON.stringify({
-                text,
-                receiver_id: receiverId,
-                expires_in: expiresIn,
-                encryption_level: encryptionLevel
-            })
+            body: JSON.stringify(payload)
         });
         
         if (response.ok) {
@@ -24,13 +30,17 @@ async function shareText(text, receiverId = null, expiresIn = null, encryptionLe
     }
 }
 
-async function shareFile(file, receiverId = null, expiresIn = null, encryptionLevel = 'standard') {
+async function shareFile(file, receiverId = null, expiresIn = null, encryptionLevel = 'standard', password = null, maxViews = null) {
     try {
         const formData = new FormData();
         formData.append('file', file);
+        formData.append('encryption_level', encryptionLevel);
+        
+        // Add optional parameters only if they have values
         if (receiverId) formData.append('receiver_id', receiverId);
         if (expiresIn) formData.append('expires_in', expiresIn);
-        formData.append('encryption_level', encryptionLevel);
+        if (password) formData.append('password', password);
+        if (maxViews) formData.append('max_views', maxViews);
         
         const response = await fetch(`${API_BASE_URL}/content/share/file`, {
             method: 'POST',
@@ -51,10 +61,20 @@ async function shareFile(file, receiverId = null, expiresIn = null, encryptionLe
     }
 }
 
-async function decodeContent(qrData) {
+async function decodeContent(qrData, password = null) {
     try {
+        const headers = {
+            'Content-Type': 'application/json'
+        };
+        
+        // Add password header if provided
+        if (password) {
+            headers['X-Content-Password'] = password;
+        }
+        
         const response = await apiRequest('/content/decode', {
             method: 'POST',
+            headers: headers,
             body: JSON.stringify({ qr_data: qrData })
         });
         
@@ -62,6 +82,13 @@ async function decodeContent(qrData) {
             return await response.json();
         } else {
             const errorData = await response.json();
+            
+            // Handle password required error
+            if (response.status === 401 && errorData.requires_password) {
+                // Show password input card
+                return await showPasswordPromptCard(qrData);
+            }
+            
             const errorMsg = errorData.error || 'Failed to decode QR code';
             throw new Error(errorMsg);
         }
@@ -71,6 +98,176 @@ async function decodeContent(qrData) {
         }
         throw new Error('Network error. Please try again');
     }
+}
+
+// Show password prompt card
+function showPasswordPromptCard(qrData) {
+    return new Promise((resolve, reject) => {
+        // Create modal overlay
+        const modalOverlay = document.createElement('div');
+        modalOverlay.style.cssText = `
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.7);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 10000;
+            backdrop-filter: blur(4px);
+        `;
+        
+        // Create password card
+        const card = document.createElement('div');
+        card.style.cssText = `
+            background: linear-gradient(135deg, #1e3a5f 0%, #2d5a8a 100%);
+            border-radius: 16px;
+            padding: 2rem;
+            max-width: 450px;
+            width: 90%;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+            animation: slideIn 0.3s ease-out;
+        `;
+        
+        card.innerHTML = `
+            <style>
+                @keyframes slideIn {
+                    from {
+                        transform: translateY(-20px);
+                        opacity: 0;
+                    }
+                    to {
+                        transform: translateY(0);
+                        opacity: 1;
+                    }
+                }
+            </style>
+            <div style="text-align: center; margin-bottom: 1.5rem;">
+                <div style="display: inline-flex; align-items: center; justify-content: center; width: 64px; height: 64px; background: rgba(255, 255, 255, 0.1); border-radius: 50%; margin-bottom: 1rem;">
+                    <i class="fas fa-lock" style="font-size: 28px; color: #4a9eff;"></i>
+                </div>
+                <h2 style="margin: 0; color: #ffffff; font-size: 1.5rem; font-weight: 600;">Password Protected</h2>
+                <p style="margin: 0.5rem 0 0; color: #b8c5d6; font-size: 0.95rem;">This content requires a password to view</p>
+            </div>
+            
+            <div style="margin-bottom: 1.5rem;">
+                <label style="display: block; margin-bottom: 0.5rem; color: #e0e6ed; font-size: 0.9rem; font-weight: 500;">
+                    <i class="fas fa-key"></i> Enter Password
+                </label>
+                <input 
+                    type="password" 
+                    id="passwordInput" 
+                    placeholder="Enter password..."
+                    style="
+                        width: 100%;
+                        padding: 0.875rem 1rem;
+                        background: rgba(255, 255, 255, 0.08);
+                        border: 1px solid rgba(255, 255, 255, 0.15);
+                        border-radius: 8px;
+                        color: #ffffff;
+                        font-size: 1rem;
+                        outline: none;
+                        transition: all 0.3s ease;
+                        box-sizing: border-box;
+                    "
+                    onkeypress="if(event.key === 'Enter') document.getElementById('submitPasswordBtn').click();"
+                />
+            </div>
+            
+            <div style="display: flex; gap: 0.75rem;">
+                <button 
+                    id="cancelPasswordBtn"
+                    style="
+                        flex: 1;
+                        padding: 0.875rem 1.5rem;
+                        background: rgba(255, 255, 255, 0.1);
+                        border: 1px solid rgba(255, 255, 255, 0.2);
+                        border-radius: 8px;
+                        color: #ffffff;
+                        font-size: 1rem;
+                        font-weight: 500;
+                        cursor: pointer;
+                        transition: all 0.3s ease;
+                    "
+                    onmouseover="this.style.background='rgba(255, 255, 255, 0.15)'"
+                    onmouseout="this.style.background='rgba(255, 255, 255, 0.1)'"
+                >
+                    <i class="fas fa-times"></i> Cancel
+                </button>
+                <button 
+                    id="submitPasswordBtn"
+                    style="
+                        flex: 1;
+                        padding: 0.875rem 1.5rem;
+                        background: linear-gradient(135deg, #4a9eff 0%, #357abd 100%);
+                        border: none;
+                        border-radius: 8px;
+                        color: #ffffff;
+                        font-size: 1rem;
+                        font-weight: 600;
+                        cursor: pointer;
+                        transition: all 0.3s ease;
+                        box-shadow: 0 4px 12px rgba(74, 158, 255, 0.3);
+                    "
+                    onmouseover="this.style.transform='translateY(-2px)'; this.style.boxShadow='0 6px 20px rgba(74, 158, 255, 0.4)'"
+                    onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='0 4px 12px rgba(74, 158, 255, 0.3)'"
+                >
+                    <i class="fas fa-unlock"></i> Unlock
+                </button>
+            </div>
+        `;
+        
+        modalOverlay.appendChild(card);
+        document.body.appendChild(modalOverlay);
+        
+        // Focus on password input
+        setTimeout(() => {
+            document.getElementById('passwordInput').focus();
+        }, 100);
+        
+        // Handle submit
+        document.getElementById('submitPasswordBtn').onclick = async () => {
+            const password = document.getElementById('passwordInput').value;
+            if (!password) {
+                document.getElementById('passwordInput').style.borderColor = '#ff4444';
+                document.getElementById('passwordInput').placeholder = 'Password is required';
+                return;
+            }
+            
+            // Show loading
+            document.getElementById('submitPasswordBtn').innerHTML = '<i class="fas fa-spinner fa-spin"></i> Unlocking...';
+            document.getElementById('submitPasswordBtn').disabled = true;
+            
+            try {
+                const result = await decodeContent(qrData, password);
+                document.body.removeChild(modalOverlay);
+                resolve(result);
+            } catch (error) {
+                document.getElementById('passwordInput').style.borderColor = '#ff4444';
+                document.getElementById('passwordInput').value = '';
+                document.getElementById('passwordInput').placeholder = 'Incorrect password. Try again...';
+                document.getElementById('submitPasswordBtn').innerHTML = '<i class="fas fa-unlock"></i> Unlock';
+                document.getElementById('submitPasswordBtn').disabled = false;
+                document.getElementById('passwordInput').focus();
+            }
+        };
+        
+        // Handle cancel
+        document.getElementById('cancelPasswordBtn').onclick = () => {
+            document.body.removeChild(modalOverlay);
+            reject(new Error('Password entry cancelled'));
+        };
+        
+        // Close on overlay click
+        modalOverlay.onclick = (e) => {
+            if (e.target === modalOverlay) {
+                document.body.removeChild(modalOverlay);
+                reject(new Error('Password entry cancelled'));
+            }
+        };
+    });
 }
 
 // QR Code Generation
@@ -510,17 +707,33 @@ document.addEventListener('DOMContentLoaded', () => {
             const receiverId = document.getElementById('shareReceiver').value || null;
             const encryptionLevel = document.getElementById('textEncryptionLevel').value || 'standard';
             
+            // Get security options
+            const password = document.getElementById('textPassword').value || null;
+            const expiresIn = document.getElementById('textExpiry').value || null;
+            const maxViews = document.getElementById('textMaxViews').value || null;
+            
             if (!text.trim()) {
                 showError('Please enter text to share');
                 return;
             }
             
             try {
-                const result = await shareText(text, receiverId, null, encryptionLevel);
+                const result = await shareText(text, receiverId, expiresIn, encryptionLevel, password, maxViews);
                 generateQRCode(result.qr_code);
-                showSuccess(`Text shared with ${result.encryption_name} encryption!`);
-                // Clear the input
+                
+                // Build success message with security info
+                let successMsg = `Text shared with ${result.encryption_name} encryption!`;
+                if (password) successMsg += ' 🔒 Password protected';
+                if (expiresIn) successMsg += ' ⏱️ With expiry';
+                if (maxViews) successMsg += ` 👁️ Max ${maxViews} views`;
+                
+                showSuccess(successMsg);
+                
+                // Clear the inputs
                 document.getElementById('shareTextInput').value = '';
+                document.getElementById('textPassword').value = '';
+                document.getElementById('textExpiry').value = '';
+                document.getElementById('textMaxViews').value = '';
             } catch (error) {
                 showError(error.message);
             }
@@ -534,17 +747,33 @@ document.addEventListener('DOMContentLoaded', () => {
             const receiverId = document.getElementById('fileReceiver').value || null;
             const encryptionLevel = document.getElementById('fileEncryptionLevel').value || 'standard';
             
+            // Get security options
+            const password = document.getElementById('filePassword').value || null;
+            const expiresIn = document.getElementById('fileExpiry').value || null;
+            const maxViews = document.getElementById('fileMaxViews').value || null;
+            
             if (!fileInput.files[0]) {
                 showError('Please select a file');
                 return;
             }
             
             try {
-                const result = await shareFile(fileInput.files[0], receiverId, null, encryptionLevel);
+                const result = await shareFile(fileInput.files[0], receiverId, expiresIn, encryptionLevel, password, maxViews);
                 generateQRCode(result.qr_code);
-                showSuccess(`File shared with ${result.encryption_name} encryption!`);
-                // Clear the input
+                
+                // Build success message with security info
+                let successMsg = `File shared with ${result.encryption_name} encryption!`;
+                if (password) successMsg += ' 🔒 Password protected';
+                if (expiresIn) successMsg += ' ⏱️ With expiry';
+                if (maxViews) successMsg += ` 👁️ Max ${maxViews} views`;
+                
+                showSuccess(successMsg);
+                
+                // Clear the inputs
                 fileInput.value = '';
+                document.getElementById('filePassword').value = '';
+                document.getElementById('fileExpiry').value = '';
+                document.getElementById('fileMaxViews').value = '';
             } catch (error) {
                 showError(error.message);
             }

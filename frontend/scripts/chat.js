@@ -607,7 +607,15 @@ window.toggleQRContentInput = function() {
 
 // Share QR code to friend
 window.shareQRCodeToFriend = async function() {
+    // Get the share button to show loading state
+    const shareBtn = document.querySelector('.qr-btn-primary');
+    const originalBtnContent = shareBtn.innerHTML;
+    
     try {
+        // Show loading state
+        shareBtn.disabled = true;
+        shareBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Sending...';
+        
         // Get content type from active button instead of select
         const activeTypeBtn = document.querySelector('.qr-type-btn.active');
         const contentType = activeTypeBtn ? activeTypeBtn.dataset.type : 'text';
@@ -624,6 +632,8 @@ window.shareQRCodeToFriend = async function() {
             const text = document.getElementById('qrTextContent').value.trim();
             if (!text) {
                 showToast('Please enter text to share', 'error');
+                shareBtn.disabled = false;
+                shareBtn.innerHTML = originalBtnContent;
                 return;
             }
             
@@ -637,6 +647,8 @@ window.shareQRCodeToFriend = async function() {
             const fileInput = document.getElementById('qrFileInput');
             if (!fileInput.files || !fileInput.files[0]) {
                 showToast('Please select a file to share', 'error');
+                shareBtn.disabled = false;
+                shareBtn.innerHTML = originalBtnContent;
                 return;
             }
             
@@ -667,13 +679,7 @@ window.shareQRCodeToFriend = async function() {
         
         const result = await response.json();
         
-        // Close modal - check if it exists first
-        const modal = document.querySelector('.modal-overlay');
-        if (modal) {
-            modal.remove();
-        }
-        
-        // Send email notification to receiver
+        // Send email notification to receiver (async, won't block)
         await sendQREmailNotification(currentFriendId, result.content_id, contentType, encryption, expiration);
         
         // Send simple text message in chat
@@ -681,7 +687,13 @@ window.shareQRCodeToFriend = async function() {
         const messageText = `🎁 I've sent you a QR Code!\n\n📧 Check your email to view and scan the QR code.\n🔒 Encryption: ${encryption}\n⏰ Expires: ${expiration ? formatExpiration(expiration) : 'Never'}`;
         await sendSimpleMessage(messageText);
         
-        showToast('QR Code sent to email!', 'success');
+        // Close modal - check if it exists first
+        const modal = document.querySelector('.modal-overlay');
+        if (modal) {
+            modal.remove();
+        }
+        
+        showToast('QR Code sent! Email is being delivered.', 'success');
         
         // Refresh shared page in background
         if (typeof loadSharedContent === 'function') {
@@ -691,6 +703,10 @@ window.shareQRCodeToFriend = async function() {
     } catch (error) {
         console.error('Error sharing QR:', error);
         showToast(error.message || 'Failed to share QR code', 'error');
+        
+        // Restore button state on error
+        shareBtn.disabled = false;
+        shareBtn.innerHTML = originalBtnContent;
         
         // Try to close modal on error too
         const modal = document.querySelector('.modal-overlay');

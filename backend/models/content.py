@@ -42,7 +42,7 @@ class Content:
         
         if expires_in:
             from datetime import timedelta
-            content['expires_at'] = datetime.now(timezone.utc) + timedelta(seconds=expires_in)
+            content['expires_at'] = datetime.now(timezone.utc) + timedelta(seconds=int(expires_in))
         
         # If it's a file, store in GridFS
         if metadata.get('type') == 'file':
@@ -92,7 +92,13 @@ class Content:
     def mark_as_viewed(self, content_id):
         self.collection.update_one(
             {'_id': ObjectId(content_id)},
-            {'$set': {'viewed': True}, '$inc': {'view_count': 1}}
+            {
+                '$set': {'viewed': True}, 
+                '$inc': {
+                    'view_count': 1,
+                    'metadata.views': 1  # Increment views in metadata for view limit tracking
+                }
+            }
         )
     
     def get_file(self, file_id):

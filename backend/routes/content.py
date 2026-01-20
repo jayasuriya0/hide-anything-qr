@@ -26,6 +26,8 @@ def share_text():
         receiver_id = data.get('receiver_id')
         expires_in = data.get('expires_in')  # in seconds
         encryption_level = data.get('encryption_level', 'standard')  # basic, standard, high, maximum
+        password = data.get('password')  # Optional password protection
+        max_views = data.get('max_views')  # Optional view limit
         
         if not text:
             return jsonify({'error': 'Text content required'}), 400
@@ -77,6 +79,16 @@ def share_text():
             'encryption_level': encryption_level,
             'encryption_name': enc_config['name']
         }
+        
+        # Add password hash if provided
+        if password:
+            from werkzeug.security import generate_password_hash
+            metadata['password_hash'] = generate_password_hash(password)
+        
+        # Add max views if provided
+        if max_views:
+            metadata['max_views'] = int(max_views)
+            metadata['views'] = 0
         
         content_id, content = content_model.share_content(
             user_id, receiver_id, encrypted_text, metadata, 
@@ -147,7 +159,7 @@ def share_text():
 @content_bp.route('/send-qr-email', methods=['POST'])
 @jwt_required()
 def send_qr_email():
-    """Send QR code to receiver's email"""
+    """Send QR code to receiver's email (async)"""
     try:
         user_id = get_jwt_identity()
         data = request.get_json()
@@ -189,43 +201,58 @@ def send_qr_email():
         qr_generator = get_qr_generator()
         qr_code = qr_generator.generate_qr_code(qr_data)
         
-        # Send email using email_notifier
-        try:
-            from utils.email_notifier import send_qr_email as send_email
-            
-            sender_name = sender.get('username', 'A friend')
-            content_type = metadata.get('type', 'content')
-            encryption_level = metadata.get('encryption_level', 'standard')
-            
-            success = send_email(
-                receiver_email=receiver_email,
-                sender_name=sender_name,
-                qr_code_base64=qr_code,
-                content_type=content_type,
-                encryption_level=encryption_level
-            )
-            
-            if success:
-                current_app.logger.info(f"✅ QR Code email sent to {receiver_email}")
-                return jsonify({
-                    'message': 'QR code email sent successfully',
-                    'receiver': receiver.get('username')
-                }), 200
-            else:
-                current_app.logger.error(f"❌ Failed to send email to {receiver_email}")
-                return jsonify({
-                    'error': 'Failed to send email. Please check server logs.',
-                    'receiver': receiver.get('username')
-                }), 500
+        # Send email asynchronously in background thread
+        from utils.email_notifier import send_qr_email as send_email
+        import threading
+        
+        sender_name = sender.get('username', 'A friend')
+        content_type = metadata.get('content_type', 'content')
+        encryption_level = metadata.get('encryption_level', 'standard')
+        
+        # Get app instance before starting thread (needed for logging in thread)
+        app = current_app._get_current_object()
+        
+        def send_email_async():
+            """Background thread function to send email"""
+            with app.app_context():
+                try:
+                    success = send_email(
+                        receiver_email=receiver_email,
+                        sender_name=sender_name,
+                        qr_code_base64=qr_code,
+                        content_type=content_type,
+                        encryption_level=encryption_level
+                    )
+                    
+                    if success:
+                        app.logger.info(f"✅ QR Code email sent to {receiver_email}")
+                    else:
+                        app.logger.error(f"❌ Failed to send email to {receiver_email}")
+                        
+                except Exception as email_error:
+                    app.logger.error(f"Email sending failed: {str(email_error)}")
+                    import traceback
+                    traceback.print_exc()
+        
+        # Start background thread
+        email_thread = threading.Thread(target=send_email_async)
+        email_thread.daemon = True
+        email_thread.start()
+        
+        # Return immediately without waiting for email
+        return jsonify({
+            'message': 'QR code is being sent via email',
+            'receiver': receiver.get('username'),
+            'status': 'processing'
+        }), 200
                 
-        except Exception as email_error:
-            current_app.logger.error(f"Email sending failed: {str(email_error)}")
-            import traceback
-            traceback.print_exc()
-            return jsonify({
-                'error': f'Email service error: {str(email_error)}',
-                'receiver': receiver.get('username')
-            }), 500
+    except Exception as error:
+        current_app.logger.error(f"Request processing failed: {str(error)}")
+        import traceback
+        traceback.print_exc()
+        return jsonify({
+            'error': f'Request error: {str(error)}'
+        }), 500
         
     except Exception as e:
         current_app.logger.error(f"Error sending QR email: {str(e)}")
@@ -246,6 +273,8 @@ def share_file():
         receiver_id = request.form.get('receiver_id')
         expires_in = request.form.get('expires_in')
         encryption_level = request.form.get('encryption_level', 'standard')
+        password = request.form.get('password')  # Optional password protection
+        max_views = request.form.get('max_views')  # Optional view limit
         
         if file.filename == '':
             return jsonify({'error': 'No file selected'}), 400
@@ -292,6 +321,16 @@ def share_file():
             'encryption_level': encryption_level,
             'encryption_name': enc_config['name']
         }
+        
+        # Add password hash if provided
+        if password:
+            from werkzeug.security import generate_password_hash
+            metadata['password_hash'] = generate_password_hash(password)
+        
+        # Add max views if provided
+        if max_views:
+            metadata['max_views'] = int(max_views)
+            metadata['views'] = 0
         
         print(f"Storing content with metadata: {metadata}")
         try:
@@ -409,6 +448,49 @@ def decode_content():
         # Check if content is active
         if not content.get('is_active', True):
             return jsonify({'error': 'This content has been deactivated by the sender'}), 403
+        
+        # Check expiry date
+        if content.get('expires_at'):
+            from datetime import datetime, timezone
+            expires_at = content['expires_at']
+            
+            # Ensure expires_at is timezone-aware
+            if expires_at.tzinfo is None:
+                expires_at = expires_at.replace(tzinfo=timezone.utc)
+            
+            if datetime.now(timezone.utc) > expires_at:
+                return jsonify({
+                    'error': 'Content has expired',
+                    'expired_at': expires_at.isoformat()
+                }), 410  # HTTP 410 Gone
+        
+        # Check view limit
+        metadata = content.get('metadata', {})
+        if metadata.get('max_views'):
+            current_views = metadata.get('views', 0)
+            max_views = metadata['max_views']
+            if current_views >= max_views:
+                return jsonify({
+                    'error': 'View limit reached',
+                    'max_views': max_views,
+                    'current_views': current_views
+                }), 403  # HTTP 403 Forbidden
+        
+        # Check password protection
+        if metadata.get('password_hash'):
+            provided_password = request.headers.get('X-Content-Password')
+            if not provided_password:
+                return jsonify({
+                    'error': 'Password required',
+                    'requires_password': True
+                }), 401  # HTTP 401 Unauthorized
+            
+            from werkzeug.security import check_password_hash
+            if not check_password_hash(metadata['password_hash'], provided_password):
+                return jsonify({
+                    'error': 'Invalid password',
+                    'requires_password': True
+                }), 401  # HTTP 401 Unauthorized
         
         # Check permissions
         if str(content['receiver_id']) != user_id and not content['metadata'].get('is_public'):

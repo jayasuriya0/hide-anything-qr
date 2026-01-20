@@ -1,11 +1,11 @@
 services:
   - type: web
     name: hideanything-qr
-    env: python
+    runtime: python
     region: oregon
     plan: free
-    buildCommand: cd backend && pip install -r requirements.txt
-    startCommand: cd backend && gunicorn -w 4 -b 0.0.0.0:$PORT --timeout 120 app:app
+    buildCommand: pip install -r requirements.txt
+    startCommand: cd backend && gunicorn -w 2 -b 0.0.0.0:$PORT --timeout 120 app:app
     envVars:
       - key: PYTHON_VERSION
         value: 3.11.0
@@ -16,8 +16,8 @@ services:
       - key: SESSION_COOKIE_SECURE
         value: True
       # Add these manually in Render dashboard:
-      # - MONGO_URI (from MongoDB Atlas connection string)
-      # - REDIS_URL (from Upstash Redis connection string)
+      # - MONGO_URI (your MongoDB Atlas connection string)
+      # - REDIS_URL (use: memory:// for free tier)
       # - SECRET_KEY (click "Generate" button in Render)
       # - JWT_SECRET_KEY (click "Generate" button in Render)
-      # - ALLOWED_ORIGINS (your Render URL: https://hideanything-qr.onrender.com)
+      # - ALLOWED_ORIGINS (your Render URL)
