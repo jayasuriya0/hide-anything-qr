@@ -1,5 +1,4 @@
 import os
-import ssl
 from flask import Flask, jsonify, send_from_directory, send_file
 from flask_cors import CORS
 from flask_jwt_extended import JWTManager
@@ -10,7 +9,6 @@ from datetime import timedelta
 from dotenv import load_dotenv
 from pymongo import MongoClient
 import redis
-import certifi
 
 # Load environment variables
 load_dotenv()
@@ -80,24 +78,9 @@ try:
     # Get MongoDB URI
     mongo_uri = app.config['MONGO_URI']
     
-    # Remove any existing TLS parameters from URI to control them via options
-    if '?' in mongo_uri:
-        base_uri = mongo_uri.split('?')[0]
-        # Extract database name if present
-        if '/' in base_uri.split('@')[-1]:
-            mongo_uri = base_uri
-        else:
-            mongo_uri = base_uri
-    
-    # Connection parameters - simplified for MongoDB Atlas
-    connection_params = {
-        'serverSelectionTimeoutMS': 5000,
-        'connectTimeoutMS': 10000,
-        'socketTimeoutMS': 10000,
-    }
-    
     print(f"[INFO] Connecting to MongoDB Atlas...")
-    mongo_client = MongoClient(mongo_uri, **connection_params)
+    # For MongoDB Atlas, use minimal connection params - let the URI handle TLS
+    mongo_client = MongoClient(mongo_uri, serverSelectionTimeoutMS=5000)
     # Test connection
     mongo_client.admin.command('ping')
     print("[SUCCESS] MongoDB connected successfully")
