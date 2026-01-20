@@ -101,13 +101,10 @@ try:
         'maxIdleTimeMS': 45000               # Keep idle connections longer
     }
     
-    # For MongoDB Atlas, disable TLS verification completely
+    # For MongoDB Atlas, use proper TLS with certifi
     if 'mongodb.net' in mongo_uri or 'mongodb+srv' in mongo_uri:
         connection_params['tls'] = True
-        connection_params['tlsAllowInvalidCertificates'] = True
-        connection_params['tlsInsecure'] = True
-        # Add these for extra compatibility
-        connection_params['directConnection'] = False
+        connection_params['tlsCAFile'] = certifi.where()
         connection_params['retryReads'] = True
     
     print(f"[INFO] Connecting to MongoDB with TLS parameters...")
