@@ -89,27 +89,16 @@ try:
         else:
             mongo_uri = base_uri
     
-    # Connection parameters with increased timeouts to prevent timeout errors
+    # Connection parameters - simplified for MongoDB Atlas
     connection_params = {
-        'serverSelectionTimeoutMS': 30000,  # Increased from 10s to 30s
-        'connectTimeoutMS': 30000,           # Increased from 20s to 30s
-        'socketTimeoutMS': 60000,            # Increased from 20s to 60s
-        'retryWrites': True,
-        'w': 'majority',
-        'maxPoolSize': 50,                   # Increase connection pool size
-        'minPoolSize': 10,                   # Keep some connections ready
-        'maxIdleTimeMS': 45000               # Keep idle connections longer
+        'serverSelectionTimeoutMS': 5000,
+        'connectTimeoutMS': 10000,
+        'socketTimeoutMS': 10000,
     }
     
-    # For MongoDB Atlas, use proper TLS with certifi
-    if 'mongodb.net' in mongo_uri or 'mongodb+srv' in mongo_uri:
-        connection_params['tls'] = True
-        connection_params['tlsCAFile'] = certifi.where()
-        connection_params['retryReads'] = True
-    
-    print(f"[INFO] Connecting to MongoDB with TLS parameters...")
+    print(f"[INFO] Connecting to MongoDB Atlas...")
     mongo_client = MongoClient(mongo_uri, **connection_params)
-    # Test connection with longer timeout
+    # Test connection
     mongo_client.admin.command('ping')
     print("[SUCCESS] MongoDB connected successfully")
 except Exception as e:
