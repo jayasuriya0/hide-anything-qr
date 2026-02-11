@@ -346,12 +346,6 @@ This project is licensed under the MIT License - see the LICENSE file for detail
 - Cryptography library maintainers
 - QR code generation libraries
 
-## 📞 Support
-
-- Create an issue: [GitHub Issues](https://github.com/yourusername/hide-anything-qr/issues)
-- Email: support@hideanything.com
-- Documentation: [Wiki](https://github.com/yourusername/hide-anything-qr/wiki)
-
 ## 🔮 Future Enhancements
 
 - [ ] Mobile applications (iOS/Android)
