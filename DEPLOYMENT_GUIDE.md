@@ -19,16 +19,18 @@
 3. **Create Database User**:
    - Click "Database Access" → "Add New Database User"
    - Authentication: Password
-   - Username: `hideanything_user`
+   - Username: `hide` (or your chosen username)
    - Password: **Generate a strong password** (save it!)
    - Database User Privileges: "Read and write to any database"
    - Click "Add User"
 
-4. **Whitelist All IPs** (for Render to connect):
+4. **Whitelist IPs for Access**:
    - Click "Network Access" → "Add IP Address"
-   - Click "Allow Access from Anywhere"
-   - IP: `0.0.0.0/0`
-   - Click "Confirm"
+   - **For Render deployment**: Add `0.0.0.0/0` (Allow from anywhere)
+     - Description: "Render deployment"
+     - Click "Confirm"
+   - **For local development**: Optionally add your current IP
+   - ⚠️ **Important**: Without `0.0.0.0/0`, Render cannot connect to your database
 
 5. **Get Connection String**:
    - Click "Database" → "Connect"
@@ -36,14 +38,13 @@
    - Driver: Python, Version: 3.11 or later
    - Copy the connection string:
      ```
-     mongodb+srv://hideanything_user:<password>@hideanything-cluster.xxxxx.mongodb.net/hide_anything_qr?retryWrites=true&w=majority
+     mongodb+srv://hide:<password>@hideanything.jfezgsz.mongodb.net/?appName=hideanything
      ```
-   - **Replace `<password>` with your actual password**
-   - **Add database name** at the end: `/hide_anything_qr`
+   - **Replace `<password>` with your actual password** (URL-encode special characters: `@` becomes `%40`)
 
    Example:
    ```
-   mongodb+srv://hideanything_user:MySecurePass123@hideanything-cluster.abc123.mongodb.net/hide_anything_qr?retryWrites=true&w=majority
+   mongodb+srv://hide:YOUR_PASSWORD_HERE@hideanything.jfezgsz.mongodb.net/?appName=hideanything
    ```
 
 ---

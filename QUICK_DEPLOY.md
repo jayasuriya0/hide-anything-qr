@@ -11,11 +11,21 @@
 
 ## 📋 Step-by-Step (10 minutes)
 
-### 1️⃣ Get Your Connection Strings
+### 1️⃣ Configure MongoDB Atlas
 
-**MongoDB Atlas**:
+**Setup Database User**:
+1. Go to **Database Access** → Add user with username `hide` and a strong password
+2. Set privileges to **Read and write to any database**
+
+**Whitelist Render IPs**:
+1. Go to **Network Access** → **Add IP Address**
+2. Add: `0.0.0.0/0` (Allow from anywhere for Render)
+3. Description: "Render deployment"
+4. Click **Confirm**
+
+**Get Connection String**:
 ```
-mongodb+srv://username:password@cluster.mongodb.net/hide_anything_qr?retryWrites=true&w=majority
+mongodb+srv://hide:YOUR_PASSWORD@cluster.mongodb.net/?appName=hideanything
 ```
 
 **Upstash Redis**:

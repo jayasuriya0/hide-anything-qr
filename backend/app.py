@@ -78,15 +78,23 @@ try:
     # Get MongoDB URI
     mongo_uri = app.config['MONGO_URI']
     
-    print(f"[INFO] Connecting to MongoDB Atlas...")
-    # For MongoDB Atlas, use minimal connection params - let the URI handle TLS
+    if 'mongodb+srv://' in mongo_uri or 'mongodb.net' in mongo_uri:
+        print(f"[INFO] Connecting to MongoDB Atlas...")
+    else:
+        print(f"[INFO] Connecting to MongoDB (localhost)...")
+    
+    # Connect to MongoDB
     mongo_client = MongoClient(mongo_uri, serverSelectionTimeoutMS=5000)
     # Test connection
     mongo_client.admin.command('ping')
     print("[SUCCESS] MongoDB connected successfully")
 except Exception as e:
     print(f"[ERROR] MongoDB connection failed: {e}")
-    print(f"   Connection URI (masked): mongodb+srv://***@{mongo_uri.split('@')[1] if '@' in mongo_uri else 'unknown'}")
+    if '@' in str(mongo_uri):
+        masked_uri = f"mongodb://***@{mongo_uri.split('@')[1] if '@' in mongo_uri else 'unknown'}"
+    else:
+        masked_uri = "mongodb://localhost:27017"
+    print(f"   Connection URI (masked): {masked_uri}")
     # Create a dummy client for development
     mongo_client = None
     if is_production():
