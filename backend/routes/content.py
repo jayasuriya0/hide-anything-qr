@@ -160,36 +160,58 @@ def share_text():
 @jwt_required()
 def send_qr_email():
     """Send QR code to receiver's email (async)"""
+    # IMMEDIATE LOGGING - Before any other code
+    print("\n" + "=" * 100)
+    print("🚨 EMAIL ENDPOINT HIT!")
+    print("=" * 100)
+    
     try:
+        print("Step 1: Getting JWT identity...")
         user_id = get_jwt_identity()
+        print(f"   User ID: {user_id}")
+        
+        print("Step 2: Parsing request JSON...")
         data = request.get_json()
+        print(f"   Data received: {data}")
         
         receiver_id = data.get('receiver_id')
         content_id = data.get('content_id')
         metadata = data.get('metadata', {})
         
+        print(f"   Receiver ID: {receiver_id}")
+        print(f"   Content ID: {content_id}")
+        
         if not receiver_id or not content_id:
+            print("❌ Missing receiver_id or content_id!")
             return jsonify({'error': 'Receiver ID and Content ID required'}), 400
         
+        print("Step 3: Getting user models...")
         # Get user models
         user_model = get_user_model()
         sender = user_model.get_by_id(user_id)
         receiver = user_model.get_by_id(receiver_id)
         
         if not receiver:
+            print("❌ Receiver not found!")
             return jsonify({'error': 'Receiver not found'}), 404
         
         receiver_email = receiver.get('email')
+        print(f"   Receiver email: {receiver_email}")
+        
         if not receiver_email:
+            print("❌ Receiver has no email!")
             return jsonify({'error': 'Receiver email not available'}), 400
         
+        print("Step 4: Getting content...")
         # Get content to generate QR again
         content_model = get_content_model()
         content = content_model.collection.find_one({'_id': ObjectId(content_id)})
         
         if not content:
+            print("❌ Content not found!")
             return jsonify({'error': 'Content not found'}), 404
         
+        print("Step 5: Generating QR code...")
         # Generate QR code
         qr_data = {
             'content_id': content_id,
@@ -200,6 +222,9 @@ def send_qr_email():
         
         qr_generator = get_qr_generator()
         qr_code = qr_generator.generate_qr_code(qr_data)
+        print("   QR code generated successfully!")
+        
+        print("Step 6: Checking SMTP credentials...")
         
         # Check if email credentials are configured
         import os
@@ -276,11 +301,21 @@ def send_qr_email():
         }), 200
                 
     except Exception as error:
-        current_app.logger.error(f"Request processing failed: {str(error)}")
+        print("\n" + "=" * 100)
+        print("🔥 CRITICAL ERROR IN EMAIL ENDPOINT!")  
+        print("=" * 100)
+        print(f"Error type: {type(error).__name__}")
+        print(f"Error message: {str(error)}")
+        print("\nFull traceback:")
         import traceback
         traceback.print_exc()
+        print("=" * 100 + "\n")
+        
+        current_app.logger.error(f"Request processing failed: {str(error)}")
+        
         return jsonify({
-            'error': f'Request error: {str(error)}'
+            'error': f'Request error: {str(error)}',
+            'error_type': type(error).__name__
         }), 500
         
     except Exception as e:
