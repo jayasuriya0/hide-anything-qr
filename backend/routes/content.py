@@ -3,6 +3,7 @@ from flask_jwt_extended import jwt_required, get_jwt_identity
 from bson import ObjectId
 import base64
 from io import BytesIO
+import sys
 from routes.helpers import get_user_model, get_db, get_socketio, get_content_model, get_encryption_manager, get_qr_generator, get_activity_model, get_notification_model
 from config.security import (
     validate_file_upload,
@@ -161,12 +162,18 @@ def share_text():
 def send_qr_email():
     """Send QR code to receiver's email (async)"""
     # IMMEDIATE LOGGING - Before any other code
+    sys.stdout.write("\n" + "=" * 100 + "\n")
+    sys.stdout.write("🚨 EMAIL ENDPOINT HIT!\n")
+    sys.stdout.write("=" * 100 + "\n")
+    sys.stdout.flush()
+    
     print("\n" + "=" * 100)
     print("🚨 EMAIL ENDPOINT HIT!")
     print("=" * 100)
     
     try:
         print("Step 1: Getting JWT identity...")
+        sys.stdout.flush()
         user_id = get_jwt_identity()
         print(f"   User ID: {user_id}")
         
