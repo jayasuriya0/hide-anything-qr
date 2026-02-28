@@ -342,6 +342,8 @@ let lastScannedCode = null;
 let lastScanTime = 0;
 let scanFrameCount = 0;
 let scanAnimationFrame = null;
+let scanLinePosition = 0;
+let scanLineDirection = 1;
 
 async function startQRScanner() {
     const video = document.getElementById('scannerVideo');
@@ -480,6 +482,43 @@ function scanQRCode() {
         overlayCtx.lineTo(centerX + size/2, centerY + size/2);
         overlayCtx.lineTo(centerX + size/2, centerY + size/2 - cornerLength);
         overlayCtx.stroke();
+        
+        // Draw animated scanning line (like Google scanner)
+        const scanAreaTop = centerY - size/2;
+        const scanAreaBottom = centerY + size/2;
+        const scanAreaHeight = scanAreaBottom - scanAreaTop;
+        
+        // Update scan line position
+        scanLinePosition += scanLineDirection * 3; // Speed of 3 pixels per frame
+        if (scanLinePosition >= scanAreaHeight) {
+            scanLinePosition = scanAreaHeight;
+            scanLineDirection = -1; // Reverse direction
+        } else if (scanLinePosition <= 0) {
+            scanLinePosition = 0;
+            scanLineDirection = 1; // Reverse direction
+        }
+        
+        const lineY = scanAreaTop + scanLinePosition;
+        
+        // Draw scanning line with gradient
+        const gradient = overlayCtx.createLinearGradient(0, lineY - 20, 0, lineY + 20);
+        gradient.addColorStop(0, 'rgba(76, 175, 80, 0)');
+        gradient.addColorStop(0.5, 'rgba(76, 175, 80, 0.8)');
+        gradient.addColorStop(1, 'rgba(76, 175, 80, 0)');
+        
+        overlayCtx.fillStyle = gradient;
+        overlayCtx.fillRect(centerX - size/2, lineY - 2, size, 4);
+        
+        // Draw glow effect
+        overlayCtx.shadowColor = '#4CAF50';
+        overlayCtx.shadowBlur = 10;
+        overlayCtx.strokeStyle = '#4CAF50';
+        overlayCtx.lineWidth = 2;
+        overlayCtx.beginPath();
+        overlayCtx.moveTo(centerX - size/2, lineY);
+        overlayCtx.lineTo(centerX + size/2, lineY);
+        overlayCtx.stroke();
+        overlayCtx.shadowBlur = 0;
     }
     
     // Create a canvas to capture video frame
@@ -493,16 +532,21 @@ function scanQRCode() {
         context.drawImage(video, 0, 0, canvas.width, canvas.height);
         const imageData = context.getImageData(0, 0, canvas.width, canvas.height);
         
-        // Try to detect QR code using jsQR with better options
+        // Try to detect QR code using jsQR with comprehensive options
         if (typeof jsQR !== 'undefined') {
             const code = jsQR(imageData.data, imageData.width, imageData.height, {
-                inversionAttempts: "attemptBoth", // Try both normal and inverted
+                inversionAttempts: "attemptBoth", // Try both normal and inverted colors
             });
             
             if (code && code.data) {
-                console.log('✓ QR code detected! Length:', code.data.length, 'Preview:', code.data.substring(0, 80));
+                console.log('==========================================');
+                console.log('✓✓✓ QR CODE DETECTED ✓✓✓');
+                console.log('Data length:', code.data.length);
+                console.log('Data preview:', code.data.substring(0, 100));
+                console.log('Full data:', code.data);
+                console.log('==========================================');
                 
-                // Draw detection box on overlay
+                // Draw detection box on overlay with animation
                 if (overlay && code.location) {
                     const overlayCtx = overlay.getContext('2d');
                     overlayCtx.clearRect(0, 0, overlay.width, overlay.height);
@@ -511,8 +555,11 @@ function scanQRCode() {
                     const scaleX = overlay.width / canvas.width;
                     const scaleY = overlay.height / canvas.height;
                     
+                    // Draw bright green detection box
                     overlayCtx.strokeStyle = '#00FF00';
-                    overlayCtx.lineWidth = 3;
+                    overlayCtx.lineWidth = 5;
+                    overlayCtx.shadowColor = '#00FF00';
+                    overlayCtx.shadowBlur = 15;
                     overlayCtx.beginPath();
                     overlayCtx.moveTo(code.location.topLeftCorner.x * scaleX, code.location.topLeftCorner.y * scaleY);
                     overlayCtx.lineTo(code.location.topRightCorner.x * scaleX, code.location.topRightCorner.y * scaleY);
@@ -520,16 +567,33 @@ function scanQRCode() {
                     overlayCtx.lineTo(code.location.bottomLeftCorner.x * scaleX, code.location.bottomLeftCorner.y * scaleY);
                     overlayCtx.closePath();
                     overlayCtx.stroke();
+                    overlayCtx.shadowBlur = 0;
+                    
+                    // Draw success checkmark in center
+                    const centerX = (code.location.topLeftCorner.x + code.location.bottomRightCorner.x) / 2 * scaleX;
+                    const centerY = (code.location.topLeftCorner.y + code.location.bottomRightCorner.y) / 2 * scaleY;
+                    overlayCtx.fillStyle = '#00FF00';
+                    overlayCtx.font = 'bold 48px Arial';
+                    overlayCtx.textAlign = 'center';
+                    overlayCtx.textBaseline = 'middle';
+                    overlayCtx.fillText('✓', centerX, centerY);
                 }
                 
                 const currentTime = Date.now();
-                // Avoid scanning the same code multiple times (debounce 1 second)
-                if (code.data !== lastScannedCode || currentTime - lastScanTime > 1000) {
+                // Avoid scanning the same code multiple times (debounce 500ms)
+                if (code.data !== lastScannedCode || currentTime - lastScanTime > 500) {
                     lastScannedCode = code.data;
                     lastScanTime = currentTime;
                     if (indicator) {
-                        indicator.innerHTML = '<i class="fas fa-check-circle"></i> QR Code Found! Decoding...';
+                        indicator.innerHTML = '<i class="fas fa-check-circle" style="color: #00FF00;"></i> QR Code Found! Decoding...';
                     }
+                    
+                    // Vibrate to indicate success
+                    if (navigator.vibrate) {
+                        navigator.vibrate([200, 100, 200]);
+                    }
+                    
+                    // Handle the scanned QR code
                     handleScannedQR(code.data);
                     return; // Stop scanning after successful scan
                 }
@@ -553,46 +617,59 @@ async function handleScannedQR(qrData) {
         // Stop scanning temporarily
         isScanning = false;
         
-        // Provide haptic feedback if available
-        if (navigator.vibrate) {
-            navigator.vibrate(200);
-        }
-        
-        console.log('QR Code raw data:', qrData);
-        showSuccess('QR Code detected! Decoding...');
+        console.log('==========================================');
+        console.log('>>> PROCESSING QR CODE <<<');
+        console.log('Raw data:', qrData);
+        console.log('==========================================');
         
         // Decode the secure QR data to validate format
         const decodedData = decodeSecureQRData(qrData);
-        console.log('Decoded QR data:', decodedData);
+        console.log('Decoded structure:', decodedData);
         
         if (decodedData && decodedData.content_id) {
+            console.log('✓ Valid HideAnything.QR code detected!');
+            console.log('Content ID:', decodedData.content_id);
+            
+            showSuccess('QR Code detected! Decrypting content...');
+            
             // Pass the RAW qrData string to backend for proper decoding
-            console.log('Valid content QR detected, sending to backend...');
             const result = await decodeContent(qrData);
+            console.log('Backend decryption result:', result);
+            
             displayDecryptedContent(result);
             
-            // Stop camera after successful scan
+            // AUTO-CLOSE camera after successful scan (like Google scanner)
+            console.log('✓ Decryption successful - auto-closing camera...');
             stopQRScanner();
             
-            showSuccess('Content decrypted successfully!');
+            showSuccess('Content decrypted successfully! Camera closed.');
         } else {
             // Not a valid app QR code, keep scanning
-            console.log('Not a valid HideAnything.QR code, continuing to scan...');
+            console.log('⚠ Not a HideAnything.QR code, continuing to scan...');
+            console.log('Decoded data type:', typeof decodedData);
+            console.log('Has content_id?', decodedData && decodedData.content_id);
+            
             // Resume scanning immediately without showing error
             isScanning = true;
             scanQRCode();
         }
     } catch (error) {
-        console.error('QR scan error:', error);
+        console.error('==========================================');
+        console.error('✗✗✗ QR SCAN ERROR ✗✗✗');
+        console.error('Error type:', error.name);
+        console.error('Error message:', error.message);
+        console.error('Full error:', error);
+        console.error('==========================================');
         
         // Only show error if it's a permission or critical error
         // Don't show errors for invalid QR codes - just keep scanning
-        if (error.message && error.message.includes('permission')) {
+        if (error.message && (error.message.includes('permission') || error.message.includes('Authorization'))) {
             showError(error.message);
             stopQRScanner();
         } else {
-            // For other errors, just log and continue scanning
-            console.log('Continuing to scan...');
+            // For other errors, show brief message and continue scanning
+            console.log('Non-critical error - continuing to scan after 1 second...');
+            showError('Could not decode QR code. Try again.');
             setTimeout(() => {
                 isScanning = true;
                 scanQRCode();
@@ -602,7 +679,10 @@ async function handleScannedQR(qrData) {
 }
 
 window.stopQRScanner = function() {
-    console.log('Stopping camera scanner...');
+    console.log('==========================================');
+    console.log('>>> STOPPING CAMERA SCANNER <<<');
+    console.log('==========================================');
+    
     const video = document.getElementById('scannerVideo');
     const overlay = document.getElementById('scannerOverlay');
     const startBtn = document.getElementById('startCameraBtn');
@@ -614,11 +694,14 @@ window.stopQRScanner = function() {
     isScanning = false;
     lastScannedCode = null;
     scanFrameCount = 0;
+    scanLinePosition = 0;
+    scanLineDirection = 1;
     
     // Cancel any pending animation frame
     if (scanAnimationFrame) {
         cancelAnimationFrame(scanAnimationFrame);
         scanAnimationFrame = null;
+        console.log('✓ Animation frame cancelled');
     }
     
     if (currentStream) {
