@@ -350,14 +350,21 @@ async function startQRScanner() {
     if (!video) return;
     
     try {
-        const stream = await navigator.mediaDevices.getUserMedia({
-            video: { facingMode: 'environment' }
-        });
+        // Request camera permission with better constraints
+        const constraints = {
+            video: {
+                facingMode: 'environment',
+                width: { ideal: 1280 },
+                height: { ideal: 720 }
+            }
+        };
+        
+        const stream = await navigator.mediaDevices.getUserMedia(constraints);
         
         currentStream = stream;
         video.srcObject = stream;
         video.classList.remove('hidden');
-        video.play();
+        await video.play();
         
         if (startBtn) startBtn.classList.add('hidden');
         if (stopBtn) stopBtn.classList.remove('hidden');
@@ -365,6 +372,7 @@ async function startQRScanner() {
         
         // Wait for video to be ready
         video.onloadedmetadata = () => {
+            console.log('Camera ready, starting QR scan...');
             isScanning = true;
             scanQRCode();
             showSuccess('Camera started. Point at a QR code to scan.');
@@ -372,7 +380,19 @@ async function startQRScanner() {
         
     } catch (error) {
         console.error('Camera access failed:', error);
-        showError('Could not access camera. Please check permissions.');
+        let errorMessage = 'Could not access camera. ';
+        
+        if (error.name === 'NotAllowedError' || error.name === 'PermissionDeniedError') {
+            errorMessage += 'Please allow camera access in your browser settings.';
+        } else if (error.name === 'NotFoundError') {
+            errorMessage += 'No camera found on this device.';
+        } else if (error.name === 'NotReadableError') {
+            errorMessage += 'Camera is already in use by another application.';
+        } else {
+            errorMessage += 'Please check your camera permissions and try again.';
+        }
+        
+        showError(errorMessage);
     }
 }
 
@@ -435,6 +455,7 @@ async function handleScannedQR(qrData) {
             navigator.vibrate(200);
         }
         
+        console.log('QR Code detected:', qrData);
         showSuccess('QR Code detected! Decoding...');
         
         // Decode the secure QR data
@@ -450,22 +471,28 @@ async function handleScannedQR(qrData) {
             
             showSuccess('Content decrypted successfully!');
         } else {
-            showError('Invalid QR code format');
-            // Resume scanning after 2 seconds
-            setTimeout(() => {
-                isScanning = true;
-                scanQRCode();
-            }, 2000);
+            // Not a valid app QR code, keep scanning
+            console.log('Not a valid HideAnything.QR code, continuing to scan...');
+            // Resume scanning immediately without showing error
+            isScanning = true;
+            scanQRCode();
         }
     } catch (error) {
         console.error('QR scan error:', error);
-        showError(error.message || 'Failed to decode QR code');
         
-        // Resume scanning after 2 seconds
-        setTimeout(() => {
-            isScanning = true;
-            scanQRCode();
-        }, 2000);
+        // Only show error if it's a permission or critical error
+        // Don't show errors for invalid QR codes - just keep scanning
+        if (error.message && error.message.includes('permission')) {
+            showError(error.message);
+            stopQRScanner();
+        } else {
+            // For other errors, just log and continue scanning
+            console.log('Continuing to scan...');
+            setTimeout(() => {
+                isScanning = true;
+                scanQRCode();
+            }, 1000);
+        }
     }
 }
 
