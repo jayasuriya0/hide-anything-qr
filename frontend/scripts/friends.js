@@ -428,19 +428,18 @@ window.viewQRContent = async function(contentId) {
     try {
         console.log('Viewing QR content:', contentId);
         
-        // Fetch the QR content details
-        const response = await apiRequest(`/content/shared/received`);
+        // Decode the content using the content ID
+        const response = await apiRequest(`/content/decode`, {
+            method: 'POST',
+            body: JSON.stringify({ qr_data: contentId })
+        });
+        
         if (!response.ok) {
-            throw new Error('Failed to fetch QR content');
+            const error = await response.json();
+            throw new Error(error.error || 'Failed to load QR content');
         }
         
-        const receivedContent = await response.json();
-        const qrContent = receivedContent.find(c => c.content_id === contentId);
-        
-        if (!qrContent) {
-            showError('QR content not found');
-            return;
-        }
+        const qrContent = await response.json();
         
         // Display the QR content in a modal (without closing profile modal)
         const modal = document.createElement('div');
