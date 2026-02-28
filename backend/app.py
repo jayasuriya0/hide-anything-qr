@@ -75,45 +75,15 @@ socketio = SocketIO(
     ping_interval=25
 )
 
-# Initialize rate limiter with fallback to memory storage
-redis_url = os.environ.get('REDIS_URL', 'memory://')
-
-# For production with external Redis (like Upstash), use shorter timeouts
-# Redis with eventlet can have SSL issues, so we use memory:// as fallback
-try:
-    if redis_url != 'memory://' and is_production():
-        # Try Redis with short timeout to avoid blocking
-        limiter = Limiter(
-            key_func=get_remote_address,
-            default_limits=[RATE_LIMITS['default']],
-            storage_uri=redis_url,
-            storage_options={
-                "socket_timeout": 2,
-                "socket_connect_timeout": 2,
-                "socket_keepalive": True,
-                "health_check_interval": 30
-            }
-        )
-        print("[INFO] Rate limiter using Redis storage")
-    else:
-        # Use memory storage for development or if Redis URL is memory://
-        limiter = Limiter(
-            key_func=get_remote_address,
-            default_limits=[RATE_LIMITS['default']],
-            storage_uri='memory://'
-        )
-        print("[INFO] Rate limiter using in-memory storage")
-    
-    limiter.init_app(app)
-except Exception as e:
-    print(f"[WARNING] Failed to initialize rate limiter with Redis: {e}")
-    print("[INFO] Falling back to in-memory rate limiting")
-    limiter = Limiter(
-        key_func=get_remote_address,
-        default_limits=[RATE_LIMITS['default']],
-        storage_uri='memory://'
-    )
-    limiter.init_app(app)
+# Initialize rate limiter with memory storage (Redis doesn't work well with eventlet)
+# For production, use memory:// - it works fine with single worker setup
+limiter = Limiter(
+    key_func=get_remote_address,
+    default_limits=[RATE_LIMITS['default']],
+    storage_uri='memory://'
+)
+limiter.init_app(app)
+print("[INFO] Rate limiter initialized with in-memory storage")
 
 # Database connections
 try:
@@ -144,28 +114,10 @@ except Exception as e:
     
 db = mongo_client.hide_anything_qr if mongo_client else None
 
-# Redis client initialization (optional for caching/sessions)
+# Redis client disabled for eventlet compatibility
+# Using in-memory storage for rate limiting instead
 redis_client = None
-try:
-    redis_url = os.environ.get('REDIS_URL', '')
-    if redis_url and redis_url != 'memory://':
-        # Only try to connect if a valid Redis URL is provided
-        redis_client = redis.from_url(
-            redis_url,
-            socket_timeout=2,
-            socket_connect_timeout=2,
-            socket_keepalive=True,
-            decode_responses=True
-        )
-        # Test connection
-        redis_client.ping()
-        print("[INFO] Redis client connected successfully")
-    else:
-        print("[INFO] Redis client disabled (using memory storage)")
-except Exception as e:
-    print(f"[WARNING] Redis client connection failed: {e}")
-    print("[INFO] Continuing without Redis client (rate limiter uses in-memory storage)")
-    redis_client = None
+print("[INFO] Redis client disabled (using in-memory storage for rate limiting)")
 
 # Import models
 from models.user import User
