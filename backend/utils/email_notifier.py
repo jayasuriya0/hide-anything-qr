@@ -27,8 +27,21 @@ def send_qr_email(receiver_email, sender_name, qr_code_base64, content_type, enc
         mail_use_tls = os.environ.get('SMTP_TLS', 'true').lower() == 'true'
         
         if not mail_username or not mail_password:
-            print("❌ Email credentials not configured in .env file")
-            print("Please set SMTP_USER and SMTP_PASSWORD")
+            print("=" * 60)
+            print("❌ EMAIL CREDENTIALS NOT CONFIGURED")
+            print("=" * 60)
+            print("SMTP_USER is not set" if not mail_username else f"SMTP_USER: {mail_username}")
+            print("SMTP_PASSWORD is not set" if not mail_password else "SMTP_PASSWORD: [SET]")
+            print("\n📋 To fix this:")
+            print("1. For local development: Set in backend/.env file")
+            print("2. For production (Render): Set in Environment Variables")
+            print("\nRequired variables:")
+            print("   SMTP_HOST=smtp.gmail.com")
+            print("   SMTP_PORT=587")
+            print("   SMTP_USER=your-email@gmail.com")
+            print("   SMTP_PASSWORD=your-app-password")
+            print("   SMTP_TLS=true")
+            print("=" * 60)
             return False
         
         print(f"📧 Attempting to send email to: {receiver_email}")

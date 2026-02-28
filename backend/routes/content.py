@@ -201,6 +201,17 @@ def send_qr_email():
         qr_generator = get_qr_generator()
         qr_code = qr_generator.generate_qr_code(qr_data)
         
+        # Check if email credentials are configured
+        import os
+        smtp_user = os.environ.get('SMTP_USER', '')
+        smtp_password = os.environ.get('SMTP_PASSWORD', '')
+        
+        if not smtp_user or not smtp_password:
+            return jsonify({
+                'error': 'Email service not configured. Please contact administrator.',
+                'message': 'SMTP credentials are not set in environment variables'
+            }), 503
+        
         # Send email asynchronously in background thread
         from utils.email_notifier import send_qr_email as send_email
         import threading
