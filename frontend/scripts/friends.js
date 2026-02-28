@@ -353,7 +353,8 @@ window.viewUserProfile = async function(userId) {
                     </div>
                     <h2 style="margin: 0 0 0.5rem 0;">${profile.username}</h2>
                     ${profile.is_friend ? '<span class="badge" style="background: rgba(102, 126, 234, 0.2); color: #667eea; padding: 0.25rem 0.75rem; border-radius: 1rem; font-size: 0.875rem;"><i class="fas fa-user-friends"></i> Friend</span>' : ''}
-                    ${profile.bio ? `<p class="text-muted" style="margin-top: 1rem;">${profile.bio}</p>` : ''}
+                    ${profile.status ? `<p style="margin-top: 0.75rem; color: #667eea; font-size: 0.9rem;"><i class="fas fa-circle" style="font-size: 0.5rem; margin-right: 0.5rem;"></i>${profile.status}</p>` : ''}
+                    ${profile.bio ? `<p class="text-muted" style="margin-top: 0.75rem; font-style: italic;">${profile.bio}</p>` : ''}
                 </div>
                 
                 <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 1rem; margin-bottom: 2rem;">
@@ -435,11 +436,24 @@ window.viewQRContent = async function(contentId) {
         });
         
         if (!response.ok) {
-            const error = await response.json();
-            throw new Error(error.error || 'Failed to load QR content');
+            const errorData = await response.json().catch(() => ({ error: 'Failed to load QR content' }));
+            console.error('Error loading QR content:', errorData);
+            showError(errorData.error || 'Failed to load QR content');
+            return;
         }
         
         const qrContent = await response.json();
+        console.log('QR Content loaded:', qrContent);
+        
+        // Extract data with correct property names from decode endpoint
+        const contentType = qrContent.metadata?.type || 'text';
+        const decryptedContent = qrContent.decrypted_content || qrContent.encrypted_data || '';
+        const filename = qrContent.metadata?.filename || 'file';
+        const fileSize = qrContent.metadata?.file_size;
+        const downloadUrl = qrContent.download_url;
+        const senderName = qrContent.sender_name || 'Unknown';
+        const createdAt = qrContent.created_at;
+        const encryptionLevel = qrContent.metadata?.encryption_level || 'Standard';
         
         // Display the QR content in a modal (without closing profile modal)
         const modal = document.createElement('div');
@@ -451,29 +465,35 @@ window.viewQRContent = async function(contentId) {
                 <button onclick="this.closest('.modal').remove()" style="position: absolute; top: 1rem; right: 1rem; background: rgba(255,255,255,0.1); border: none; color: white; width: 32px; height: 32px; border-radius: 50%; cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 1.2rem;">
                     ×
                 </button>
-                <h3 style="margin-bottom: 1.5rem;"><i class="fas fa-${qrContent.type === 'text' ? 'font' : qrContent.type === 'file' ? 'file' : 'link'}"></i> ${qrContent.type.charAt(0).toUpperCase() + qrContent.type.slice(1)} Content</h3>
+                <h3 style="margin-bottom: 1.5rem;"><i class="fas fa-${contentType === 'text' ? 'font' : contentType === 'file' ? 'file' : 'link'}"></i> ${contentType.charAt(0).toUpperCase() + contentType.slice(1)} Content</h3>
                 
-                ${qrContent.type === 'text' ? `
-                    <div style="background: rgba(255,255,255,0.05); padding: 1rem; border-radius: 0.5rem; margin-bottom: 1rem;">
-                        <pre style="white-space: pre-wrap; word-wrap: break-word; margin: 0;">${qrContent.decrypted_data || qrContent.encrypted_data}</pre>
+                ${qrContent.decryption_error ? `
+                    <div style="background: rgba(244, 67, 54, 0.1); padding: 1rem; border-radius: 0.5rem; margin-bottom: 1rem; border-left: 3px solid #f44336;">
+                        <p style="color: #f44336; margin: 0;"><i class="fas fa-exclamation-triangle"></i> ${qrContent.decryption_error}</p>
                     </div>
-                ` : qrContent.type === 'file' ? `
+                ` : ''}
+                
+                ${contentType === 'text' ? `
                     <div style="background: rgba(255,255,255,0.05); padding: 1rem; border-radius: 0.5rem; margin-bottom: 1rem;">
-                        <p><strong>Filename:</strong> ${qrContent.filename || 'Unknown'}</p>
-                        <p><strong>Size:</strong> ${qrContent.file_size ? (qrContent.file_size / 1024).toFixed(2) + ' KB' : 'Unknown'}</p>
-                        ${qrContent.file_url ? `<a href="${qrContent.file_url}" class="btn btn-primary" download style="margin-top: 0.5rem;"><i class="fas fa-download"></i> Download</a>` : ''}
+                        <pre style="white-space: pre-wrap; word-wrap: break-word; margin: 0;">${decryptedContent}</pre>
+                    </div>
+                ` : contentType === 'file' ? `
+                    <div style="background: rgba(255,255,255,0.05); padding: 1rem; border-radius: 0.5rem; margin-bottom: 1rem;">
+                        <p><strong>Filename:</strong> ${filename}</p>
+                        <p><strong>Size:</strong> ${fileSize ? (fileSize / 1024).toFixed(2) + ' KB' : 'Unknown'}</p>
+                        ${downloadUrl ? `<a href="/api${downloadUrl}" class="btn btn-primary" download style="margin-top: 0.5rem;"><i class="fas fa-download"></i> Download</a>` : ''}
                     </div>
                 ` : `
                     <div style="background: rgba(255,255,255,0.05); padding: 1rem; border-radius: 0.5rem; margin-bottom: 1rem;">
                         <p><strong>URL:</strong></p>
-                        <a href="${qrContent.decrypted_data || qrContent.encrypted_data}" target="_blank" style="color: #667eea; word-break: break-all;">${qrContent.decrypted_data || qrContent.encrypted_data}</a>
+                        <a href="${decryptedContent}" target="_blank" style="color: #667eea; word-break: break-all;">${decryptedContent}</a>
                     </div>
                 `}
                 
                 <div style="font-size: 0.875rem; color: rgba(255,255,255,0.6);">
-                    <p><strong>From:</strong> ${qrContent.sender_username || 'Unknown'}</p>
-                    <p><strong>Shared:</strong> ${new Date(qrContent.created_at).toLocaleString()}</p>
-                    ${qrContent.encryption_level ? `<p><strong>Encryption:</strong> ${qrContent.encryption_level}</p>` : ''}
+                    <p><strong>From:</strong> ${senderName}</p>
+                    <p><strong>Shared:</strong> ${new Date(createdAt).toLocaleString()}</p>
+                    <p><strong>Encryption:</strong> ${encryptionLevel}</p>
                 </div>
             </div>
         `;
