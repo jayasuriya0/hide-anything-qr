@@ -69,7 +69,8 @@ class User:
                 'notify_friend_requests': True,
                 'notify_new_content': True,
                 'notify_activities': True,
-                'email_notifications': False
+                'email_notifications': False,
+                'profile_visibility': 'public'  # public or private
             }
         }
         

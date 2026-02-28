@@ -928,6 +928,29 @@
                         </div>
                     </div>
 
+                    <!-- Privacy Settings -->
+                    <div class="card" style="margin-bottom: 1.5rem;">
+                        <div class="card-header">
+                            <h3 class="card-title"><i class="fas fa-user-shield"></i> Privacy</h3>
+                        </div>
+                        <div class="card-body">
+                            <div class="form-group">
+                                <label class="form-label" for="profileVisibility">Profile Visibility</label>
+                                <select id="profileVisibility" class="form-input">
+                                    <option value="public">Public - Anyone can view your profile and public QR codes</option>
+                                    <option value="private">Private - Only friends can view your profile</option>
+                                </select>
+                                <div class="form-help" style="margin-top: 0.5rem; font-size: 0.85rem; color: rgba(255,255,255,0.6);">
+                                    When your profile is public, anyone can search for you and view your public QR codes. 
+                                    When private, only your friends can view your profile.
+                                </div>
+                            </div>
+                            <button id="updatePrivacyBtn" class="btn btn-primary">
+                                <i class="fas fa-save"></i> Save Privacy Settings
+                            </button>
+                        </div>
+                    </div>
+
                     <!-- Storage Management -->
                     <div class="card" style="margin-bottom: 1.5rem;">
                         <div class="card-header">
@@ -1050,6 +1073,32 @@
                     <i class="fas fa-download"></i> Download QR Code
                 </button>
                 <button class="btn btn-secondary" onclick="closeQRModal()">
+                    <i class="fas fa-times"></i> Close
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Profile View Modal -->
+    <div id="profileViewModal" class="modal hidden">
+        <div class="modal-overlay" onclick="closeProfileModal()"></div>
+        <div class="modal-content" style="max-width: 800px; max-height: 90vh; overflow-y: auto;">
+            <div class="modal-header">
+                <h3 id="profileModalTitle"><i class="fas fa-user"></i> User Profile</h3>
+                <button class="modal-close" onclick="closeProfileModal()" aria-label="Close modal" title="Close">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <div class="modal-body">
+                <div id="profileViewContent">
+                    <div style="text-align: center; padding: 2rem;">
+                        <i class="fas fa-spinner fa-spin" style="font-size: 2rem;"></i>
+                        <p class="text-muted">Loading profile...</p>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" onclick="closeProfileModal()">
                     <i class="fas fa-times"></i> Close
                 </button>
             </div>

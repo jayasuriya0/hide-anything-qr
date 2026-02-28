@@ -48,6 +48,9 @@ async function loadUserSettings() {
             document.getElementById('notifyFriendRequest').checked = settings.notify_friend_request !== false;
             document.getElementById('emailNotifications').checked = settings.email_notifications || false;
             
+            // Privacy
+            document.getElementById('profileVisibility').value = settings.profile_visibility || 'public';
+            
             // Calculate storage (mock for now)
             calculateStorage();
         }
@@ -81,6 +84,12 @@ function setupSettingsListeners() {
     const updateNotificationsBtn = document.getElementById('updateNotificationsBtn');
     if (updateNotificationsBtn) {
         updateNotificationsBtn.addEventListener('click', updateNotifications);
+    }
+    
+    // Update Privacy
+    const updatePrivacyBtn = document.getElementById('updatePrivacyBtn');
+    if (updatePrivacyBtn) {
+        updatePrivacyBtn.addEventListener('click', updatePrivacy);
     }
     
     // Clear Expired
@@ -217,6 +226,20 @@ async function updateNotifications() {
         
         await updateSettings(settings);
         showSuccess('Notification settings updated successfully');
+    } catch (error) {
+        showError(error.message);
+    }
+}
+
+// Update Privacy Settings
+async function updatePrivacy() {
+    try {
+        const settings = {
+            profile_visibility: document.getElementById('profileVisibility').value
+        };
+        
+        await updateSettings(settings);
+        showSuccess('Privacy settings updated successfully');
     } catch (error) {
         showError(error.message);
     }

@@ -349,6 +349,7 @@ def change_password():
         new_password_hash = bcrypt.hashpw(new_password.encode('utf-8'), bcrypt.gensalt())
         
         # Update password
+        db = get_db()
         db.users.update_one(
             {'_id': ObjectId(user_id)},
             {'$set': {'password_hash': new_password_hash}}
@@ -404,6 +405,132 @@ def delete_account():
         })
         
         return jsonify({'message': 'Account deleted successfully'}), 200
+        
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+
+@profile_bp.route('/search', methods=['GET'])
+@jwt_required()
+def search_users():
+    """Search for users by username, email, or phone"""
+    try:
+        user_id = get_jwt_identity()
+        query = request.args.get('q', '').strip()
+        
+        if not query or len(query) < 2:
+            return jsonify({'error': 'Search query must be at least 2 characters'}), 400
+        
+        user_model = get_user_model()
+        users = user_model.search_users(query, exclude_user_id=user_id)
+        
+        # Format results
+        results = []
+        for user in users:
+            results.append({
+                'user_id': str(user['_id']),
+                'username': user['username'],
+                'bio': user.get('bio', ''),
+                'profile_pic_url': user.get('profile_pic_url'),
+                'profile_visibility': user.get('settings', {}).get('profile_visibility', 'public')
+            })
+        
+        return jsonify({'users': results}), 200
+        
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+
+@profile_bp.route('/view/<target_user_id>', methods=['GET'])
+@jwt_required()
+def view_user_profile(target_user_id):
+    """View another user's profile with appropriate QR visibility"""
+    try:
+        viewer_id = get_jwt_identity()
+        
+        # Get target user
+        user_model = get_user_model()
+        target_user = user_model.get_by_id(target_user_id)
+        
+        if not target_user:
+            return jsonify({'error': 'User not found'}), 404
+        
+        # Check profile visibility
+        profile_visibility = target_user.get('settings', {}).get('profile_visibility', 'public')
+        
+        # Check if viewer is a friend
+        from routes.helpers import get_friend_model
+        friend_model = get_friend_model()
+        friends = friend_model.get_friends(target_user_id)
+        friend_ids = [f['friend_id'] for f in friends]
+        is_friend = viewer_id in friend_ids
+        
+        # If profile is private and viewer is not a friend, deny access
+        if profile_visibility == 'private' and not is_friend:
+            return jsonify({
+                'error': 'This profile is private',
+                'username': target_user['username'],
+                'profile_pic_url': target_user.get('profile_pic_url'),
+                'is_private': True
+            }), 403
+        
+        # Get QR codes with visibility logic
+        db = get_db()
+        from routes.helpers import get_content_model
+        content_model = get_content_model()
+        
+        # Get all active QR codes shared by this user
+        all_qr_codes = content_model.get_shared_by_user(target_user_id)
+        
+        visible_qr_codes = []
+        for qr in all_qr_codes:
+            # Skip inactive QR codes
+            if not qr.get('is_active', True):
+                continue
+            
+            is_public = qr['metadata'].get('is_public', False)
+            shared_with_viewer = str(qr.get('receiver_id')) == viewer_id
+            
+            # Visibility rules:
+            # 1. Public QR codes are visible to everyone (if profile is accessible)
+            # 2. QR codes shared with the viewer are visible to the viewer
+            if is_public or shared_with_viewer:
+                visible_qr_codes.append({
+                    'content_id': qr['content_id'],
+                    'type': qr['metadata'].get('type'),
+                    'created_at': qr['created_at'].isoformat() if qr.get('created_at') else None,
+                    'viewed': qr.get('viewed', False),
+                    'view_count': qr.get('view_count', 0),
+                    'is_public': is_public,
+                    'shared_with_me': shared_with_viewer
+                })
+        
+        # Get activity stats
+        activity_model = get_activity_model()
+        stats = activity_model.get_stats(target_user_id)
+        
+        # Calculate content stats
+        friends_count = len(friends)
+        total_qr_shared = len(all_qr_codes)
+        public_qr_count = sum(1 for qr in all_qr_codes if qr['metadata'].get('is_public', False) and qr.get('is_active', True))
+        
+        return jsonify({
+            'user_id': str(target_user['_id']),
+            'username': target_user['username'],
+            'bio': target_user.get('bio', ''),
+            'status': target_user.get('status', ''),
+            'profile_pic_url': target_user.get('profile_pic_url'),
+            'created_at': target_user['created_at'].isoformat() if target_user.get('created_at') else None,
+            'is_friend': is_friend,
+            'profile_visibility': profile_visibility,
+            'stats': {
+                'friends_count': friends_count,
+                'total_qr_shared': total_qr_shared,
+                'public_qr_count': public_qr_count,
+                **stats
+            },
+            'qr_codes': visible_qr_codes
+        }), 200
         
     except Exception as e:
         return jsonify({'error': str(e)}), 500

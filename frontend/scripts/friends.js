@@ -2,7 +2,7 @@
 
 async function searchUsers(query) {
     try {
-        const response = await apiRequest(`/friends/search?q=${encodeURIComponent(query)}`);
+        const response = await apiRequest(`/profile/search?q=${encodeURIComponent(query)}`);
         if (response.ok) {
             return await response.json();
         }
@@ -215,13 +215,24 @@ function displaySearchResults(users) {
     users.forEach(user => {
         const userDiv = document.createElement('div');
         userDiv.className = 'user-search-item';
+        
+        const visibilityIcon = user.profile_visibility === 'private' 
+            ? '<i class="fas fa-lock" title="Private Profile" style="color: rgba(255,255,255,0.5); margin-left: 0.5rem;"></i>' 
+            : '';
+        
         userDiv.innerHTML = `
             <div>
-                <strong>${user.username}</strong>
+                <strong>${user.username}</strong>${visibilityIcon}
+                ${user.bio ? `<p class="text-muted" style="font-size: 0.875rem; margin: 0.25rem 0 0 0;">${user.bio}</p>` : ''}
             </div>
-            <button onclick="sendFriendRequestTo('${user._id}', this)" class="btn btn-primary" data-user-id="${user._id}">
-                <i class="fas fa-user-plus"></i> Add Friend
-            </button>
+            <div style="display: flex; gap: 0.5rem;">
+                <button onclick="viewUserProfile('${user.user_id}')" class="btn btn-outline" style="padding: 0.5rem 1rem;">
+                    <i class="fas fa-eye"></i> View Profile
+                </button>
+                <button onclick="sendFriendRequestTo('${user.user_id}', this)" class="btn btn-primary" data-user-id="${user.user_id}" style="padding: 0.5rem 1rem;">
+                    <i class="fas fa-user-plus"></i> Add Friend
+                </button>
+            </div>
         `;
         resultsContainer.appendChild(userDiv);
     });
@@ -285,12 +296,153 @@ window.shareWithFriend = function(friendId) {
         
         // Wait a bit for the section to load, then select the friend
         setTimeout(() => {
-            const receiverSelect = document.getElementById('shareReceiver') || document.getElementById('fileReceiver');
-            if (receiverSelect) {
-                receiverSelect.value = friendId;
+            const friendSelect = document.getElementById('receiverSelect');
+            if (friendSelect) {
+                friendSelect.value = friendId;
             }
-            localStorage.removeItem('selectedFriendId');
         }, 100);
     }
 };
 
+// View User Profile
+window.viewUserProfile = async function(userId) {
+    try {
+        // Show modal with loading state
+        const modal = document.getElementById('profileViewModal');
+        const content = document.getElementById('profileViewContent');
+        
+        modal.classList.remove('hidden');
+        document.body.style.overflow = 'hidden';
+        
+        content.innerHTML = `
+            <div style="text-align: center; padding: 2rem;">
+                <i class="fas fa-spinner fa-spin" style="font-size: 2rem;"></i>
+                <p class="text-muted">Loading profile...</p>
+            </div>
+        `;
+        
+        // Fetch profile data
+        const response = await apiRequest(`/profile/view/${userId}`);
+        
+        if (response.status === 403) {
+            // Private profile
+            const data = await response.json();
+            content.innerHTML = `
+                <div style="text-align: center; padding: 2rem;">
+                    <i class="fas fa-lock" style="font-size: 3rem; color: rgba(255,255,255,0.3); margin-bottom: 1rem;"></i>
+                    <h3>${data.username}'s Profile</h3>
+                    <p class="text-muted" style="margin-top: 1rem;">This profile is private. Only friends can view it.</p>
+                    <p class="text-muted">Send a friend request to connect!</p>
+                </div>
+            `;
+            return;
+        }
+        
+        if (!response.ok) {
+            throw new Error('Failed to load profile');
+        }
+        
+        const profile = await response.json();
+        
+        // Render profile
+        content.innerHTML = `
+            <div class="profile-view">
+                <div style="text-align: center; margin-bottom: 2rem; padding-bottom: 1.5rem; border-bottom: 1px solid rgba(255,255,255,0.1);">
+                    <div style="width: 100px; height: 100px; border-radius: 50%; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); display: flex; align-items: center; justify-content: center; margin: 0 auto 1rem; font-size: 2.5rem; color: white;">
+                        ${profile.username.charAt(0).toUpperCase()}
+                    </div>
+                    <h2 style="margin: 0 0 0.5rem 0;">${profile.username}</h2>
+                    ${profile.is_friend ? '<span class="badge" style="background: rgba(102, 126, 234, 0.2); color: #667eea; padding: 0.25rem 0.75rem; border-radius: 1rem; font-size: 0.875rem;"><i class="fas fa-user-friends"></i> Friend</span>' : ''}
+                    ${profile.bio ? `<p class="text-muted" style="margin-top: 1rem;">${profile.bio}</p>` : ''}
+                </div>
+                
+                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 1rem; margin-bottom: 2rem;">
+                    <div class="stat-card" style="background: rgba(255,255,255,0.05); padding: 1rem; border-radius: 0.5rem; text-align: center;">
+                        <div style="font-size: 1.5rem; font-weight: bold; color: #667eea;">${profile.stats.friends_count || 0}</div>
+                        <div class="text-muted" style="font-size: 0.875rem;">Friends</div>
+                    </div>
+                    <div class="stat-card" style="background: rgba(255,255,255,0.05); padding: 1rem; border-radius: 0.5rem; text-align: center;">
+                        <div style="font-size: 1.5rem; font-weight: bold; color: #667eea;">${profile.stats.public_qr_count || 0}</div>
+                        <div class="text-muted" style="font-size: 0.875rem;">Public QR Codes</div>
+                    </div>
+                    <div class="stat-card" style="background: rgba(255,255,255,0.05); padding: 1rem; border-radius: 0.5rem; text-align: center;">
+                        <div style="font-size: 1.5rem; font-weight: bold; color: #667eea;">${profile.stats.total_qr_shared || 0}</div>
+                        <div class="text-muted" style="font-size: 0.875rem;">Total QR Shared</div>
+                    </div>
+                </div>
+                
+                <div>
+                    <h3 style="margin-bottom: 1rem;"><i class="fas fa-qrcode"></i> Shared QR Codes</h3>
+                    ${profile.qr_codes && profile.qr_codes.length > 0 ? `
+                        <div id="profileQRList" style="display: grid; gap: 1rem; max-height: 400px; overflow-y: auto;">
+                            ${profile.qr_codes.map(qr => `
+                                <div class="qr-item" style="background: rgba(255,255,255,0.05); padding: 1rem; border-radius: 0.5rem; display: flex; justify-content: space-between; align-items: center;">
+                                    <div>
+                                        <div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.25rem;">
+                                            <i class="fas fa-${qr.type === 'text' ? 'font' : qr.type === 'file' ? 'file' : 'link'}" style="color: #667eea;"></i>
+                                            <strong>${qr.type.charAt(0).toUpperCase() + qr.type.slice(1)}</strong>
+                                            ${qr.shared_with_me ? '<span class="badge" style="background: rgba(102, 126, 234, 0.2); color: #667eea; padding: 0.15rem 0.5rem; border-radius: 1rem; font-size: 0.75rem;"><i class="fas fa-share"></i> Shared with you</span>' : ''}
+                                            ${qr.is_public ? '<span class="badge" style="background: rgba(76, 175, 80, 0.2); color: #4caf50; padding: 0.15rem 0.5rem; border-radius: 1rem; font-size: 0.75rem;"><i class="fas fa-globe"></i> Public</span>' : ''}
+                                        </div>
+                                        <div class="text-muted" style="font-size: 0.875rem;">
+                                            Created: ${new Date(qr.created_at).toLocaleDateString()}
+                                            ${qr.viewed ? ' • <i class="fas fa-eye"></i> Viewed' : ''}
+                                            ${qr.view_count > 0 ? ` • ${qr.view_count} views` : ''}
+                                        </div>
+                                    </div>
+                                    ${qr.shared_with_me ? `
+                                        <button onclick="viewQRContent('${qr.content_id}')" class="btn btn-sm btn-primary">
+                                            <i class="fas fa-eye"></i> View
+                                        </button>
+                                    ` : ''}
+                                </div>
+                            `).join('')}
+                        </div>
+                    ` : '<p class="text-muted text-center" style="padding: 2rem;">No QR codes to display</p>'}
+                </div>
+            </div>
+        `;
+        
+    } catch (error) {
+        console.error('Error viewing profile:', error);
+        const content = document.getElementById('profileViewContent');
+        content.innerHTML = `
+            <div style="text-align: center; padding: 2rem;">
+                <i class="fas fa-exclamation-circle" style="font-size: 3rem; color: #f44336; margin-bottom: 1rem;"></i>
+                <h3>Error Loading Profile</h3>
+                <p class="text-muted">${error.message}</p>
+            </div>
+        `;
+    }
+};
+
+// Close Profile Modal
+window.closeProfileModal = function() {
+    const modal = document.getElementById('profileViewModal');
+    modal.classList.add('hidden');
+    document.body.style.overflow = 'auto';
+};
+
+// View QR Content from profile
+window.viewQRContent = function(contentId) {
+    // Close profile modal and navigate to received QR section
+    closeProfileModal();
+    
+    // Navigate to received section
+    const receivedTab = document.querySelector('[data-section="received"]');
+    if (receivedTab) {
+        receivedTab.click();
+    }
+    
+    // Highlight the QR code
+    setTimeout(() => {
+        const qrElement = document.querySelector(`[data-content-id="${contentId}"]`);
+        if (qrElement) {
+            qrElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            qrElement.style.boxShadow = '0 0 0 3px #667eea';
+            setTimeout(() => {
+                qrElement.style.boxShadow = '';
+            }, 2000);
+        }
+    }, 300);
+};
