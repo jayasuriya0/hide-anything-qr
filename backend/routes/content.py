@@ -241,30 +241,32 @@ def send_qr_email():
         qr_code = qr_generator.generate_qr_code(qr_data)
         print("   QR code generated successfully!")
         
-        print("Step 6: Checking Resend API credentials...")
+        print("Step 6: Checking Mailgun API credentials...")
         
-        # Check if Resend API key is configured
+        # Check if Mailgun API key is configured
         import os
-        resend_api_key = os.environ.get('RESEND_API_KEY', '')
-        resend_from_email = os.environ.get('RESEND_FROM_EMAIL', 'onboarding@resend.dev')
+        mailgun_api_key = os.environ.get('MAILGUN_API_KEY', '')
+        mailgun_domain = os.environ.get('MAILGUN_DOMAIN', '')
+        mailgun_from_email = os.environ.get('MAILGUN_FROM_EMAIL', f'HideQR <noreply@{mailgun_domain}>')
         
         print("=" * 80)
-        print("📧 EMAIL SENDING REQUEST (via Resend)")
+        print("📧 EMAIL SENDING REQUEST (via Mailgun)")
         print("=" * 80)
         print(f"Receiver: {receiver_email}")
         print(f"Sender: {sender.get('username', 'Unknown')}")
-        print(f"RESEND_API_KEY configured: {'Yes' if resend_api_key else 'No'}")
-        print(f"RESEND_FROM_EMAIL: {resend_from_email}")
+        print(f"MAILGUN_API_KEY configured: {'Yes' if mailgun_api_key else 'No'}")
+        print(f"MAILGUN_DOMAIN: {mailgun_domain if mailgun_domain else 'NOT SET'}")
+        print(f"MAILGUN_FROM_EMAIL: {mailgun_from_email}")
         
-        if resend_api_key:
-            print(f"RESEND_API_KEY: {resend_api_key[:10]}...{resend_api_key[-5:]} ({len(resend_api_key)} chars)")
+        if mailgun_api_key:
+            print(f"MAILGUN_API_KEY: {mailgun_api_key[:10]}...{mailgun_api_key[-5:]} ({len(mailgun_api_key)} chars)")
         print("=" * 80)
         
-        if not resend_api_key:
-            print("❌ Resend API key not configured!")
+        if not mailgun_api_key or not mailgun_domain:
+            print("❌ Mailgun not configured!")
             return jsonify({
                 'error': 'Email service not configured. Please contact administrator.',
-                'message': 'RESEND_API_KEY is not set in environment variables'
+                'message': 'MAILGUN_API_KEY and MAILGUN_DOMAIN must be set in environment variables'
             }), 503
         
         # Send email synchronously to see errors in logs
