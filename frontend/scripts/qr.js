@@ -341,6 +341,7 @@ let isScanning = false;
 let lastScannedCode = null;
 let lastScanTime = 0;
 let scanFrameCount = 0;
+let scanAnimationFrame = null;
 
 async function startQRScanner() {
     const video = document.getElementById('scannerVideo');
@@ -426,7 +427,7 @@ function scanQRCode() {
     
     if (!isScanning || !video || video.readyState !== video.HAVE_ENOUGH_DATA) {
         if (isScanning) {
-            requestAnimationFrame(scanQRCode);
+            scanAnimationFrame = requestAnimationFrame(scanQRCode);
         }
         return;
     }
@@ -435,6 +436,7 @@ function scanQRCode() {
     scanFrameCount++;
     if (scanFrameCount % 60 === 0) {
         console.log(`Scanning... ${scanFrameCount} frames processed, video: ${video.videoWidth}x${video.videoHeight}`);
+    }
     
     // Draw scanning indicator on overlay
     if (overlay) {
@@ -542,7 +544,7 @@ function scanQRCode() {
     
     // Continue scanning
     if (isScanning) {
-        requestAnimationFrame(scanQRCode);
+        scanAnimationFrame = requestAnimationFrame(scanQRCode);
     }
 }
 
@@ -600,6 +602,7 @@ async function handleScannedQR(qrData) {
 }
 
 window.stopQRScanner = function() {
+    console.log('Stopping camera scanner...');
     const video = document.getElementById('scannerVideo');
     const overlay = document.getElementById('scannerOverlay');
     const startBtn = document.getElementById('startCameraBtn');
@@ -610,6 +613,13 @@ window.stopQRScanner = function() {
     // Stop scanning loop
     isScanning = false;
     lastScannedCode = null;
+    scanFrameCount = 0;
+    
+    // Cancel any pending animation frame
+    if (scanAnimationFrame) {
+        cancelAnimationFrame(scanAnimationFrame);
+        scanAnimationFrame = null;
+    }
     
     if (currentStream) {
         currentStream.getTracks().forEach(track => track.stop());
@@ -1145,4 +1155,4 @@ function viewMediaInCard(containerId, contentType, base64Data, filename, mediaTy
     }
 }
 
-window.viewMediaInCard = viewMediaInCard;}
+window.viewMediaInCard = viewMediaInCard;
