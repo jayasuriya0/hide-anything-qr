@@ -1,3 +1,8 @@
+# CRITICAL: Eventlet monkey patching MUST be done before any other imports
+# This prevents "ReferenceError: weakly-referenced object no longer exists"
+import eventlet
+eventlet.monkey_patch()
+
 from app import app, socketio
 
 # For production deployment (Render/Heroku/etc)
