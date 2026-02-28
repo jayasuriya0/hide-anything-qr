@@ -63,7 +63,17 @@ app.config['SESSION_COOKIE_SAMESITE'] = 'Lax'
 
 # Initialize extensions
 jwt = JWTManager(app)
-socketio = SocketIO(app, cors_allowed_origins=allowed_origins, async_mode='threading')
+# Use eventlet for production (with Gunicorn eventlet worker)
+# Flask-SocketIO will auto-detect the best async mode
+socketio = SocketIO(
+    app, 
+    cors_allowed_origins=allowed_origins,
+    async_mode='eventlet',
+    logger=True,
+    engineio_logger=True,
+    ping_timeout=60,
+    ping_interval=25
+)
 
 # Initialize rate limiter (without app context for now)
 limiter = Limiter(

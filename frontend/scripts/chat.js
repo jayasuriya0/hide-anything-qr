@@ -43,7 +43,8 @@ function showToast(message, type = 'info') {
 
 // Get API base URL
 function getApiUrl() {
-    return window.API_BASE_URL || 'http://127.0.0.1:5000/api';
+    // Fallback to current origin if API_BASE_URL not set
+    return window.API_BASE_URL || `${window.location.origin}/api`;
 }
 
 // Initialize Chat Page

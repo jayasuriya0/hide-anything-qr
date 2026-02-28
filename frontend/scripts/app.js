@@ -15,6 +15,10 @@ const getServerUrl = () => {
 const API_BASE_URL = `${getServerUrl()}/api`;
 const SOCKET_URL = getServerUrl();
 
+// Expose to window for other modules
+window.API_BASE_URL = API_BASE_URL;
+window.SOCKET_URL = SOCKET_URL;
+
 console.log('Current location:', window.location.href);
 console.log('API Base URL:', API_BASE_URL);
 console.log('Socket URL:', SOCKET_URL);
