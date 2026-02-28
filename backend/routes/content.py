@@ -206,49 +206,67 @@ def send_qr_email():
         smtp_user = os.environ.get('SMTP_USER', '')
         smtp_password = os.environ.get('SMTP_PASSWORD', '')
         
+        print("=" * 80)
+        print("📧 EMAIL SENDING REQUEST")
+        print("=" * 80)
+        print(f"Receiver: {receiver_email}")
+        print(f"Sender: {sender.get('username', 'Unknown')}")
+        print(f"SMTP_USER configured: {'Yes' if smtp_user else 'No'}")
+        print(f"SMTP_PASSWORD configured: {'Yes' if smtp_password else 'No'}")
+        
+        if smtp_user:
+            print(f"SMTP_USER value: {smtp_user}")
+        if smtp_password:
+            print(f"SMTP_PASSWORD: {'*' * min(len(smtp_password), 16)} ({len(smtp_password)} chars)")
+        print("=" * 80)
+        
         if not smtp_user or not smtp_password:
+            print("❌ SMTP credentials not configured!")
             return jsonify({
                 'error': 'Email service not configured. Please contact administrator.',
                 'message': 'SMTP credentials are not set in environment variables'
             }), 503
         
-        # Send email asynchronously in background thread
+        # Send email synchronously to see errors in logs
         from utils.email_notifier import send_qr_email as send_email
-        import threading
         
         sender_name = sender.get('username', 'A friend')
         content_type = metadata.get('content_type', 'content')
         encryption_level = metadata.get('encryption_level', 'standard')
         
-        # Get app instance before starting thread (needed for logging in thread)
-        app = current_app._get_current_object()
+        print(f"🚀 Attempting to send email synchronously...")
         
-        def send_email_async():
-            """Background thread function to send email"""
-            with app.app_context():
-                try:
-                    success = send_email(
-                        receiver_email=receiver_email,
-                        sender_name=sender_name,
-                        qr_code_base64=qr_code,
-                        content_type=content_type,
-                        encryption_level=encryption_level
-                    )
-                    
-                    if success:
-                        app.logger.info(f"✅ QR Code email sent to {receiver_email}")
-                    else:
-                        app.logger.error(f"❌ Failed to send email to {receiver_email}")
-                        
-                except Exception as email_error:
-                    app.logger.error(f"Email sending failed: {str(email_error)}")
-                    import traceback
-                    traceback.print_exc()
-        
-        # Start background thread
-        email_thread = threading.Thread(target=send_email_async)
-        email_thread.daemon = True
-        email_thread.start()
+        try:
+            success = send_email(
+                receiver_email=receiver_email,
+                sender_name=sender_name,
+                qr_code_base64=qr_code,
+                content_type=content_type,
+                encryption_level=encryption_level
+            )
+            
+            if success:
+                print(f"✅ Email sent successfully to {receiver_email}")
+                return jsonify({
+                    'message': 'QR code sent via email successfully',
+                    'receiver': receiver.get('username'),
+                    'status': 'sent'
+                }), 200
+            else:
+                print(f"❌ Failed to send email to {receiver_email}")
+                return jsonify({
+                    'error': 'Failed to send email. Check server logs for details.',
+                    'status': 'failed'
+                }), 500
+                
+        except Exception as email_error:
+            print(f"❌ EMAIL ERROR: {str(email_error)}")
+            import traceback
+            traceback.print_exc()
+            return jsonify({
+                'error': f'Email sending error: {str(email_error)}',
+                'status': 'error'
+            }), 500
         
         # Return immediately without waiting for email
         return jsonify({

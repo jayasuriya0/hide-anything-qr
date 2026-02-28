@@ -44,8 +44,16 @@ def send_qr_email(receiver_email, sender_name, qr_code_base64, content_type, enc
             print("=" * 60)
             return False
         
-        print(f"📧 Attempting to send email to: {receiver_email}")
-        print(f"📮 Using SMTP: {mail_server}:{mail_port}")
+        print("=" * 80)
+        print(f"📧 SENDING EMAIL TO: {receiver_email}")
+        print(f"📮 SMTP Server: {mail_server}:{mail_port}")
+        print(f"👤 SMTP User: {mail_username}")
+        print(f"🔐 Password Length: {len(mail_password)} characters")
+        print(f"🔒 TLS Enabled: {mail_use_tls}")
+        print(f"📨 From: {sender_name}")
+        print(f"📦 Content Type: {content_type}")
+        print(f"🔐 Encryption Level: {encryption_level}")
+        print("=" * 80)
         
         # Create message
         msg = MIMEMultipart('related')
@@ -247,7 +255,7 @@ def send_qr_email(receiver_email, sender_name, qr_code_base64, content_type, enc
             print(f"Error attaching QR image: {img_error}")
         
         # Send email
-        print(f"🔌 Connecting to {mail_server}:{mail_port}...")
+        print(f"🔌 Step 1: Connecting to {mail_server}:{mail_port}...")
         
         # Set socket timeout to avoid hanging
         socket.setdefaulttimeout(30)
@@ -255,38 +263,99 @@ def send_qr_email(receiver_email, sender_name, qr_code_base64, content_type, enc
         # Try connecting with timeout
         try:
             server = smtplib.SMTP(mail_server, mail_port, timeout=30)
+            print(f"✅ Step 1: Connected successfully!")
         except socket.timeout:
-            print("❌ Connection timeout. Please check:")
-            print("   1. Your internet connection")
-            print("   2. Firewall settings (allow port 587)")
-            print("   3. Antivirus blocking SMTP")
+            print("❌ Step 1 FAILED: Connection timeout!")
+            print("   Possible causes:")
+            print("   1. Render/hosting provider blocking outbound SMTP (port 587)")
+            print("   2. Firewall settings blocking the connection")
+            print("   3. SMTP server is down")
+            print("\n💡 Solution: Check if Render allows outbound SMTP connections")
             return False
-        except socket.gaierror:
-            print(f"❌ Cannot resolve hostname: {mail_server}")
+        except socket.gaierror as dns_error:
+            print(f"❌ Step 1 FAILED: Cannot resolve hostname: {mail_server}")
+            print(f"   DNS Error: {dns_error}")
+            return False
+        except ConnectionRefusedError:
+            print(f"❌ Step 1 FAILED: Connection refused by {mail_server}:{mail_port}")
+            print("   Server actively refused the connection")
+            return False
+        except Exception as conn_error:
+            print(f"❌ Step 1 FAILED: Connection error: {conn_error}")
+            import traceback
+            traceback.print_exc()
             return False
         
-        if mail_use_tls:
-            print("🔒 Starting TLS encryption...")
-            server.starttls()
-        
-        print(f"🔑 Logging in as {mail_username}...")
         try:
+            if mail_use_tls:
+                print("🔒 Step 2: Starting TLS encryption...")
+                server.starttls()
+                print("✅ Step 2: TLS encryption started!")
+            
+            print(f"🔑 Step 3: Logging in as {mail_username}...")
             server.login(mail_username, mail_password)
-        except smtplib.SMTPAuthenticationError:
-            print("❌ Authentication failed!")
-            print("For Gmail:")
-            print("   1. Enable 2-Factor Authentication")
-            print("   2. Generate an App Password: https://myaccount.google.com/apppasswords")
-            print("   3. Use the App Password (not your regular password)")
+            print("✅ Step 3: Login successful!")
+        
+        except smtplib.SMTPAuthenticationError as auth_err:
+            print(f"❌ Step 3 FAILED: Authentication error!")
+            print(f"   Error code: {auth_err.smtp_code}")
+            print(f"   Error message: {auth_err.smtp_error}")
+            print("\n📋 Troubleshooting:")
+            print("   1. Verify SMTP_USER is correct email address")
+            print("   2. For Gmail: Must use App Password (not regular password)")
+            print("   3. Generate App Password: https://myaccount.google.com/apppasswords")
+            print("   4. Enable 2-Factor Authentication first")
             server.quit()
             return False
+        except smtplib.SMTPException as smtp_err:
+            print(f"❌ SMTP Error during setup: {smtp_err}")
+            try:
+                server.quit()
+            except:
+                pass
+            return False
+        except Exception as setup_error:
+            print(f"❌ Setup error: {setup_error}")
+            import traceback
+            traceback.print_exc()
+            try:
+                server.quit()
+            except:
+                pass
+            return False
         
-        print(f"📤 Sending email to {receiver_email}...")
-        server.send_message(msg)
-        server.quit()
-        
-        print(f"✅ Email sent successfully to {receiver_email}!")
-        return True
+        # Send the email
+        try:
+            print(f"📤 Step 4: Sending email to {receiver_email}...")
+            server.send_message(msg)
+            print("✅ Step 4: Email sent successfully!")
+            
+            print("🔌 Step 5: Closing connection...")
+            server.quit()
+            print("✅ Step 5: Connection closed!")
+            
+            print("=" * 80)
+            print(f"🎉 SUCCESS: Email delivered to {receiver_email}")
+            print("=" * 80)
+            return True
+            
+        except smtplib.SMTPException as send_err:
+            print(f"❌ Step 4 FAILED: Error sending email!")
+            print(f"   SMTP Error: {send_err}")
+            try:
+                server.quit()
+            except:
+                pass
+            return False
+        except Exception as send_error:
+            print(f"❌ Step 4 FAILED: Unexpected error: {send_error}")
+            import traceback
+            traceback.print_exc()
+            try:
+                server.quit()
+            except:
+                pass
+            return False
         
     except smtplib.SMTPAuthenticationError as auth_error:
         print(f"❌ SMTP Authentication Error: {auth_error}")
