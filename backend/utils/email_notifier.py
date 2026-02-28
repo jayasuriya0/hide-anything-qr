@@ -1,10 +1,10 @@
 import os
 import base64
-import requests
+import resend
 
 def send_qr_email(receiver_email, sender_name, qr_code_base64, content_type, encryption_level):
     """
-    Send QR code via email using Mailgun (works on Render, no domain verification needed)
+    Send QR code via email using Resend (works on Render)
     
     Args:
         receiver_email: Email address of the receiver
@@ -14,34 +14,33 @@ def send_qr_email(receiver_email, sender_name, qr_code_base64, content_type, enc
         encryption_level: Encryption level used
     """
     try:
-        # Get Mailgun configuration from environment
-        mailgun_api_key = os.environ.get('MAILGUN_API_KEY', '')
-        mailgun_domain = os.environ.get('MAILGUN_DOMAIN', '')
-        from_email = os.environ.get('MAILGUN_FROM_EMAIL', f'HideQR <noreply@{mailgun_domain}>')
+        # Get Resend configuration from environment
+        resend_api_key = os.environ.get('RESEND_API_KEY', '')
+        from_email = os.environ.get('RESEND_FROM_EMAIL', 'onboarding@resend.dev')
         
-        if not mailgun_api_key or not mailgun_domain:
+        if not resend_api_key:
             print("=" * 60)
-            print("❌ MAILGUN NOT CONFIGURED")
+            print("❌ RESEND API KEY NOT CONFIGURED")
             print("=" * 60)
-            print(f"MAILGUN_API_KEY: {'Set' if mailgun_api_key else 'NOT SET'}")
-            print(f"MAILGUN_DOMAIN: {'Set' if mailgun_domain else 'NOT SET'}")
+            print("RESEND_API_KEY is not set")
             print("\n📋 To fix this:")
-            print("1. Sign up at https://signup.mailgun.com (free 5000 emails/month)")
-            print("2. Get API key from dashboard")
+            print("1. Sign up at https://resend.com (free 100 emails/day)")
+            print("2. Create API Key: Dashboard → API Keys → Create")
             print("3. Add to Render Environment Variables:")
-            print("   MAILGUN_API_KEY=your_api_key_here")
-            print("   MAILGUN_DOMAIN=sandboxXXX.mailgun.org")
-            print("   MAILGUN_FROM_EMAIL=HideQR <noreply@sandboxXXX.mailgun.org>")
+            print("   RESEND_API_KEY=your_api_key_here")
+            print("   RESEND_FROM_EMAIL=onboarding@resend.dev")
             print("=" * 60)
             return False
         
+        # Set Resend API key
+        resend.api_key = resend_api_key
+        
         print("=" * 80)
-        print(f"📧 SENDING EMAIL VIA MAILGUN TO: {receiver_email}")
+        print(f"📧 SENDING EMAIL VIA RESEND TO: {receiver_email}")
         print(f"📨 From: {from_email}")
         print(f"👤 Sender Name: {sender_name}")
         print(f"📦 Content Type: {content_type}")
         print(f"🔐 Encryption Level: {encryption_level}")
-        print(f"🌐 Mailgun Domain: {mailgun_domain}")
         print("=" * 80)
         
         print("📝 Step 1: Creating email content...")
@@ -227,96 +226,80 @@ def send_qr_email(receiver_email, sender_name, qr_code_base64, content_type, enc
         # Decode QR image data
         qr_image_data = base64.b64decode(qr_code_base64)
         
-        print("💌 Step 3: Creating Mailgun email...")
+        print("💌 Step 3: Creating Resend email...")
         
-        # Mailgun API endpoint
-        mailgun_url = f"https://api.mailgun.net/v3/{mailgun_domain}/messages"
-        
-        # Prepare email data
-        data = {
+        # Send via Resend
+        params = {
             "from": from_email,
-            "to": receiver_email,
+            "to": [receiver_email],
             "subject": f"🎁 {sender_name} shared a QR Code with you!",
-            "html": html_body
+            "html": html_body,
+            "attachments": [
+                {
+                    "filename": "qrcode.png",
+                    "content": list(qr_image_data)
+                }
+            ]
         }
         
-        # Prepare attachment
-        files = {
-            "attachment": ("qrcode.png", qr_image_data, "image/png")
-        }
+        print("🚀 Step 4: Sending via Resend API...")
         
-        print("🚀 Step 4: Sending via Mailgun API...")
-        print(f"   API URL: {mailgun_url}")
-        
-        # Send email via Mailgun
-        response = requests.post(
-            mailgun_url,
-            auth=("api", mailgun_api_key),
-            data=data,
-            files=files,
-            timeout=30
-        )
+        # Send email
+        email = resend.Emails.send(params)
         
         print("📊 Step 5: Checking response...")
-        print(f"   Status Code: {response.status_code}")
-        print(f"   Response: {response.text}")
+        print(f"   Response: {email}")
         
-        if response.status_code == 200:
+        if email and 'id' in email:
             print("=" * 80)
             print(f"🎉 SUCCESS: Email delivered to {receiver_email}")
-            response_data = response.json()
-            print(f"   Message ID: {response_data.get('id', 'N/A')}")
+            print(f"   Email ID: {email['id']}")
             print("=" * 80)
             return True
         else:
-            print(f"❌ Mailgun returned status {response.status_code}: {response.text}")
+            print(f"❌ Resend returned unexpected response: {email}")
             return False
         
     except Exception as e:
-        print(f"❌ Mailgun Error: {str(e)}")
+        print(f"❌ Resend Error: {str(e)}")
         import traceback
         traceback.print_exc()
         
         print("\n📋 Troubleshooting:")
-        print("   1. Verify MAILGUN_API_KEY is set correctly in Render")
-        print("   2. Check API key is valid (from Mailgun dashboard)")
-        print("   3. Verify MAILGUN_DOMAIN matches your sandbox domain")
-        print("   4. Add recipient to 'Authorized Recipients' in Mailgun")
+        print("   1. Verify RESEND_API_KEY is set correctly in Render")
+        print("   2. Check API key is valid (from https://resend.com/api-keys)")
+        print("   3. Verify sender email domain (use onboarding@resend.dev for testing)")
         return False
 
 
 def send_simple_email(receiver_email, subject, body):
     """
-    Send a simple text email via Mailgun
+    Send a simple text email via Resend
     """
     try:
-        mailgun_api_key = os.environ.get('MAILGUN_API_KEY', '')
-        mailgun_domain = os.environ.get('MAILGUN_DOMAIN', '')
-        from_email = os.environ.get('MAILGUN_FROM_EMAIL', f'HideQR <noreply@{mailgun_domain}>')
+        resend_api_key = os.environ.get('RESEND_API_KEY', '')
+        from_email = os.environ.get('RESEND_FROM_EMAIL', 'onboarding@resend.dev')
         
-        if not mailgun_api_key or not mailgun_domain:
-            print("Mailgun not configured")
+        if not resend_api_key:
+            print("Resend API key not configured")
             return False
         
-        mailgun_url = f"https://api.mailgun.net/v3/{mailgun_domain}/messages"
+        resend.api_key = resend_api_key
         
-        response = requests.post(
-            mailgun_url,
-            auth=("api", mailgun_api_key),
-            data={
-                "from": from_email,
-                "to": receiver_email,
-                "subject": subject,
-                "html": body
-            },
-            timeout=30
-        )
+        params = {
+            "from": from_email,
+            "to": [receiver_email],
+            "subject": subject,
+            "html": body
+        }
         
-        if response.status_code == 200:
+        email = resend.Emails.send(params)
+        
+        if email and 'id' in email:
             print(f"✅ Email sent to {receiver_email}")
             return True
         else:
-            print(f"❌ Mailgun returned: {response.status_code} - {response.text}")
+            print(f"❌ Resend returned: {email}")
             return False
         
     except Exception as e:
