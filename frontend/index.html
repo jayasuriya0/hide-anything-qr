@@ -279,9 +279,15 @@
                         </div>
                         <div class="card-body text-center">
                             <div style="position: relative; display: flex; flex-direction: column; align-items: center;">
-                                <video id="scannerVideo" class="scanner-video hidden" autoplay playsinline></video>
+                                <div style="position: relative; display: inline-block;">
+                                    <video id="scannerVideo" class="scanner-video hidden" autoplay playsinline></video>
+                                    <canvas id="scannerOverlay" class="scanner-overlay hidden"></canvas>
+                                </div>
                                 <p id="scanningIndicator" class="text-muted hidden" style="margin-top: 0.5rem;">
                                     <i class="fas fa-spinner fa-spin"></i> Scanning for QR codes...
+                                </p>
+                                <p id="scannerInstructions" class="text-muted hidden" style="margin-top: 0.5rem; font-size: 0.9rem;">
+                                    Point your camera at a QR code and hold steady
                                 </p>
                             </div>
                             <button id="startCameraBtn" onclick="startQRScanner()" class="btn btn-primary">

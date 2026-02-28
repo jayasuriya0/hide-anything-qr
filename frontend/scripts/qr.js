@@ -343,9 +343,11 @@ let lastScanTime = 0;
 
 async function startQRScanner() {
     const video = document.getElementById('scannerVideo');
+    const overlay = document.getElementById('scannerOverlay');
     const startBtn = document.getElementById('startCameraBtn');
     const stopBtn = document.getElementById('stopCameraBtn');
     const indicator = document.getElementById('scanningIndicator');
+    const instructions = document.getElementById('scannerInstructions');
     
     if (!video) return;
     
@@ -353,9 +355,9 @@ async function startQRScanner() {
         // Request camera permission with better constraints
         const constraints = {
             video: {
-                facingMode: 'environment',
-                width: { ideal: 1280 },
-                height: { ideal: 720 }
+                facingMode: { ideal: 'environment' },
+                width: { ideal: 1920, max: 1920 },
+                height: { ideal: 1080, max: 1080 }
             }
         };
         
@@ -368,11 +370,26 @@ async function startQRScanner() {
         
         if (startBtn) startBtn.classList.add('hidden');
         if (stopBtn) stopBtn.classList.remove('hidden');
-        if (indicator) indicator.classList.remove('hidden');
+        if (indicator) {
+            indicator.classList.remove('hidden');
+            indicator.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Scanning for QR codes... Hold steady';
+        }
+        if (instructions) {
+            instructions.classList.remove('hidden');
+        }
         
         // Wait for video to be ready
         video.onloadedmetadata = () => {
-            console.log('Camera ready, starting QR scan...');
+            console.log('Camera ready, video size:', video.videoWidth, 'x', video.videoHeight);
+            console.log('Starting continuous QR scan...');
+            
+            // Setup overlay canvas
+            if (overlay) {
+                overlay.width = video.offsetWidth;
+                overlay.height = video.offsetHeight;
+                overlay.classList.remove('hidden');
+            }
+            
             isScanning = true;
             scanQRCode();
             showSuccess('Camera started. Point at a QR code to scan.');
@@ -401,12 +418,58 @@ window.startQRScanner = startQRScanner;
 
 function scanQRCode() {
     const video = document.getElementById('scannerVideo');
+    const overlay = document.getElementById('scannerOverlay');
+    const indicator = document.getElementById('scanningIndicator');
     
     if (!isScanning || !video || video.readyState !== video.HAVE_ENOUGH_DATA) {
         if (isScanning) {
             requestAnimationFrame(scanQRCode);
         }
         return;
+    }
+    
+    // Draw scanning indicator on overlay
+    if (overlay) {
+        const overlayCtx = overlay.getContext('2d');
+        overlayCtx.clearRect(0, 0, overlay.width, overlay.height);
+        
+        // Draw corner brackets
+        const centerX = overlay.width / 2;
+        const centerY = overlay.height / 2;
+        const size = Math.min(overlay.width, overlay.height) * 0.6;
+        const cornerLength = 30;
+        
+        overlayCtx.strokeStyle = '#4CAF50';
+        overlayCtx.lineWidth = 4;
+        overlayCtx.lineCap = 'round';
+        
+        // Top-left corner
+        overlayCtx.beginPath();
+        overlayCtx.moveTo(centerX - size/2, centerY - size/2 + cornerLength);
+        overlayCtx.lineTo(centerX - size/2, centerY - size/2);
+        overlayCtx.lineTo(centerX - size/2 + cornerLength, centerY - size/2);
+        overlayCtx.stroke();
+        
+        // Top-right corner
+        overlayCtx.beginPath();
+        overlayCtx.moveTo(centerX + size/2 - cornerLength, centerY - size/2);
+        overlayCtx.lineTo(centerX + size/2, centerY - size/2);
+        overlayCtx.lineTo(centerX + size/2, centerY - size/2 + cornerLength);
+        overlayCtx.stroke();
+        
+        // Bottom-left corner
+        overlayCtx.beginPath();
+        overlayCtx.moveTo(centerX - size/2, centerY + size/2 - cornerLength);
+        overlayCtx.lineTo(centerX - size/2, centerY + size/2);
+        overlayCtx.lineTo(centerX - size/2 + cornerLength, centerY + size/2);
+        overlayCtx.stroke();
+        
+        // Bottom-right corner
+        overlayCtx.beginPath();
+        overlayCtx.moveTo(centerX + size/2 - cornerLength, centerY + size/2);
+        overlayCtx.lineTo(centerX + size/2, centerY + size/2);
+        overlayCtx.lineTo(centerX + size/2, centerY + size/2 - cornerLength);
+        overlayCtx.stroke();
     }
     
     // Create a canvas to capture video frame
@@ -420,22 +483,52 @@ function scanQRCode() {
         context.drawImage(video, 0, 0, canvas.width, canvas.height);
         const imageData = context.getImageData(0, 0, canvas.width, canvas.height);
         
-        // Try to detect QR code using jsQR
+        // Try to detect QR code using jsQR with better options
         if (typeof jsQR !== 'undefined') {
             const code = jsQR(imageData.data, imageData.width, imageData.height, {
-                inversionAttempts: "dontInvert",
+                inversionAttempts: "attemptBoth", // Try both normal and inverted
             });
             
             if (code && code.data) {
+                console.log('QR code detected:', code.data.substring(0, 50) + '...');
+                
+                // Draw detection box on overlay
+                if (overlay && code.location) {
+                    const overlayCtx = overlay.getContext('2d');
+                    overlayCtx.clearRect(0, 0, overlay.width, overlay.height);
+                    
+                    // Calculate scale
+                    const scaleX = overlay.width / canvas.width;
+                    const scaleY = overlay.height / canvas.height;
+                    
+                    overlayCtx.strokeStyle = '#00FF00';
+                    overlayCtx.lineWidth = 3;
+                    overlayCtx.beginPath();
+                    overlayCtx.moveTo(code.location.topLeftCorner.x * scaleX, code.location.topLeftCorner.y * scaleY);
+                    overlayCtx.lineTo(code.location.topRightCorner.x * scaleX, code.location.topRightCorner.y * scaleY);
+                    overlayCtx.lineTo(code.location.bottomRightCorner.x * scaleX, code.location.bottomRightCorner.y * scaleY);
+                    overlayCtx.lineTo(code.location.bottomLeftCorner.x * scaleX, code.location.bottomLeftCorner.y * scaleY);
+                    overlayCtx.closePath();
+                    overlayCtx.stroke();
+                }
+                
                 const currentTime = Date.now();
-                // Avoid scanning the same code multiple times (debounce 2 seconds)
-                if (code.data !== lastScannedCode || currentTime - lastScanTime > 2000) {
+                // Avoid scanning the same code multiple times (debounce 1 second)
+                if (code.data !== lastScannedCode || currentTime - lastScanTime > 1000) {
                     lastScannedCode = code.data;
                     lastScanTime = currentTime;
+                    if (indicator) {
+                        indicator.innerHTML = '<i class="fas fa-check-circle"></i> QR Code Found! Decoding...';
+                    }
                     handleScannedQR(code.data);
                     return; // Stop scanning after successful scan
                 }
             }
+        } else {
+            console.error('jsQR library not loaded!');
+            showError('QR scanner library not loaded. Please refresh the page.');
+            stopQRScanner();
+            return;
         }
     }
     
@@ -498,9 +591,11 @@ async function handleScannedQR(qrData) {
 
 window.stopQRScanner = function() {
     const video = document.getElementById('scannerVideo');
+    const overlay = document.getElementById('scannerOverlay');
     const startBtn = document.getElementById('startCameraBtn');
     const stopBtn = document.getElementById('stopCameraBtn');
     const indicator = document.getElementById('scanningIndicator');
+    const instructions = document.getElementById('scannerInstructions');
     
     // Stop scanning loop
     isScanning = false;
@@ -516,9 +611,16 @@ window.stopQRScanner = function() {
         video.classList.add('hidden');
     }
     
+    if (overlay) {
+        const overlayCtx = overlay.getContext('2d');
+        overlayCtx.clearRect(0, 0, overlay.width, overlay.height);
+        overlay.classList.add('hidden');
+    }
+    
     if (startBtn) startBtn.classList.remove('hidden');
     if (stopBtn) stopBtn.classList.add('hidden');
     if (indicator) indicator.classList.add('hidden');
+    if (instructions) instructions.classList.add('hidden');
 };
 
 // Decode secure QR data

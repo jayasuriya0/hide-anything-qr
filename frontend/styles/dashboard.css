@@ -925,20 +925,46 @@
         grid-template-columns: 1fr;
         height: calc(100vh - 150px);
     }
-    
+
     .conversations-panel {
         display: none;
     }
-    
+
     .conversations-panel.active {
         display: flex;
     }
-    
+
     .chat-panel {
         display: none;
     }
-    
+
     .chat-panel.active {
         display: flex;
+    }
+}
+
+/* QR Scanner Styles */
+.scanner-video {
+    max-width: 100%;
+    width: 640px;
+    height: auto;
+    border-radius: 8px;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
+}
+
+.scanner-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    pointer-events: none;
+    border-radius: 8px;
+}
+
+@keyframes scan-line {
+    0% {
+        top: 0;
+    }
+    100% {
+        top: 100%;
     }
 }
