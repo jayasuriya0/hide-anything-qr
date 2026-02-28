@@ -340,6 +340,7 @@ let scanningInterval = null;
 let isScanning = false;
 let lastScannedCode = null;
 let lastScanTime = 0;
+let scanFrameCount = 0;
 
 async function startQRScanner() {
     const video = document.getElementById('scannerVideo');
@@ -391,6 +392,8 @@ async function startQRScanner() {
             }
             
             isScanning = true;
+            scanFrameCount = 0;
+            console.log('Starting QR scan loop...');
             scanQRCode();
             showSuccess('Camera started. Point at a QR code to scan.');
         };
@@ -427,6 +430,11 @@ function scanQRCode() {
         }
         return;
     }
+    
+    // Increment frame counter and log every 60 frames (~2 seconds at 30fps)
+    scanFrameCount++;
+    if (scanFrameCount % 60 === 0) {
+        console.log(`Scanning... ${scanFrameCount} frames processed, video: ${video.videoWidth}x${video.videoHeight}`);
     
     // Draw scanning indicator on overlay
     if (overlay) {
@@ -490,7 +498,7 @@ function scanQRCode() {
             });
             
             if (code && code.data) {
-                console.log('QR code detected:', code.data.substring(0, 50) + '...');
+                console.log('✓ QR code detected! Length:', code.data.length, 'Preview:', code.data.substring(0, 80));
                 
                 // Draw detection box on overlay
                 if (overlay && code.location) {
@@ -548,15 +556,17 @@ async function handleScannedQR(qrData) {
             navigator.vibrate(200);
         }
         
-        console.log('QR Code detected:', qrData);
+        console.log('QR Code raw data:', qrData);
         showSuccess('QR Code detected! Decoding...');
         
-        // Decode the secure QR data
+        // Decode the secure QR data to validate format
         const decodedData = decodeSecureQRData(qrData);
+        console.log('Decoded QR data:', decodedData);
         
         if (decodedData && decodedData.content_id) {
-            // Fetch and decrypt the content - pass the full decoded data
-            const result = await decodeContent(decodedData);
+            // Pass the RAW qrData string to backend for proper decoding
+            console.log('Valid content QR detected, sending to backend...');
+            const result = await decodeContent(qrData);
             displayDecryptedContent(result);
             
             // Stop camera after successful scan
@@ -676,11 +686,14 @@ async function decodeQRImage(file) {
                 
                 if (code && code.data) {
                     try {
-                        // Decode secure QR data
+                        console.log('QR detected from image:', code.data);
+                        // Decode secure QR data to validate format
                         const qrData = decodeSecureQRData(code.data);
+                        console.log('Decoded image QR data:', qrData);
                         
-                        if (qrData.content_id) {
-                            const result = await decodeContent(qrData.content_id);
+                        if (qrData && qrData.content_id) {
+                            // Pass the RAW code.data string to backend
+                            const result = await decodeContent(code.data);
                             displayDecryptedContent(result);
                             showNotification('Content decrypted successfully!', 'success');
                         } else {
@@ -1132,4 +1145,4 @@ function viewMediaInCard(containerId, contentType, base64Data, filename, mediaTy
     }
 }
 
-window.viewMediaInCard = viewMediaInCard;
+window.viewMediaInCard = viewMediaInCard;}

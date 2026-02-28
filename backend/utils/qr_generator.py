@@ -71,7 +71,7 @@ class QRGenerator:
         qr.add_data(qr_data)
         qr.make(fit=True)
         
-        img = qr.make_image(fill_color="blue", back_color="white")
+        img = qr.make_image(fill_color="black", back_color="white")
         
         # Resize if needed
         if size != 400:
