@@ -26,8 +26,8 @@ Go to **Render Dashboard → Your Service → Environment** and add:
 |----------|-------|-------------|
 | `SMTP_HOST` | `smtp.gmail.com` | Gmail SMTP server |
 | `SMTP_PORT` | `587` | SMTP port for TLS |
-| `SMTP_USER` | `chatbot347@gmail.com` | Your Gmail address |
-| `SMTP_PASSWORD` | `nwqbpdbqvnztullh` | Your Gmail App Password |
+| `SMTP_USER` | ` | Your Gmail address |
+| `SMTP_PASSWORD` |  | Your Gmail App Password |
 | `SMTP_TLS` | `true` | Enable TLS encryption |
 
 ### ⚠️ Important: Gmail App Password
@@ -57,8 +57,8 @@ The password in your `.env` appears to be a Gmail App Password (16 characters). 
    ```env
    SMTP_HOST=smtp.gmail.com
    SMTP_PORT=587
-   SMTP_USER=chatbot347@gmail.com
-   SMTP_PASSWORD=nwqbpdbqvnztullh
+   SMTP_USER=xyzx@gmail.com
+   SMTP_PASSWORD=************
    SMTP_TLS=true
    ```
 
@@ -84,7 +84,7 @@ After setting environment variables in Render:
    📮 Using SMTP: smtp.gmail.com:587
    🔌 Connecting to smtp.gmail.com:587...
    🔒 Starting TLS encryption...
-   🔑 Logging in as chatbot347@gmail.com...
+   🔑 Logging in as xyz@gmail.com...
    📤 Sending email to test@example.com...
    ✅ Email sent successfully!
    ```
