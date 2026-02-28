@@ -491,10 +491,30 @@ def view_user_profile(target_user_id):
             is_public = qr['metadata'].get('is_public', False)
             shared_with_viewer = str(qr.get('receiver_id')) == viewer_id
             
-            # Visibility rules:
-            # 1. Public QR codes are visible to everyone (if profile is accessible)
-            # 2. QR codes shared with the viewer are visible to the viewer
-            if is_public or shared_with_viewer:
+            # NEW VISIBILITY RULES based on profile privacy:
+            # If profile is PUBLIC:
+            #   - Public QR codes: visible to everyone
+            #   - Private QR codes (receiver_id set): only visible to that specific receiver
+            # If profile is PRIVATE:
+            #   - Public QR codes: only visible to friends
+            #   - Private QR codes (receiver_id set): only visible to that specific receiver (if they're friends)
+            
+            should_show = False
+            
+            if profile_visibility == 'public':
+                # PUBLIC profile: Show public QRs to everyone, private QRs only to receiver
+                if is_public:
+                    should_show = True  # Anyone can view public QRs
+                elif shared_with_viewer:
+                    should_show = True  # Only receiver can view their private QR
+            else:
+                # PRIVATE profile: Show public QRs only to friends, private QRs only to receiver
+                if is_public and is_friend:
+                    should_show = True  # Only friends can view public QRs
+                elif shared_with_viewer and is_friend:
+                    should_show = True  # Only receiver (if friend) can view their private QR
+            
+            if should_show:
                 visible_qr_codes.append({
                     'content_id': qr['content_id'],
                     'type': qr['metadata'].get('type'),
@@ -502,7 +522,8 @@ def view_user_profile(target_user_id):
                     'viewed': qr.get('viewed', False),
                     'view_count': qr.get('view_count', 0),
                     'is_public': is_public,
-                    'shared_with_me': shared_with_viewer
+                    'shared_with_me': shared_with_viewer,
+                    'can_view': True  # Add flag to indicate viewer can view this QR
                 })
         
         # Get activity stats

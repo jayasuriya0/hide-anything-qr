@@ -390,7 +390,7 @@ window.viewUserProfile = async function(userId) {
                                             ${qr.view_count > 0 ? ` • ${qr.view_count} views` : ''}
                                         </div>
                                     </div>
-                                    ${qr.shared_with_me ? `
+                                    ${(qr.shared_with_me || qr.can_view) ? `
                                         <button onclick="viewQRContent('${qr.content_id}')" class="btn btn-sm btn-primary">
                                             <i class="fas fa-eye"></i> View
                                         </button>

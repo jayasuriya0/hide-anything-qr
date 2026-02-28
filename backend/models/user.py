@@ -146,11 +146,16 @@ class User:
         ).limit(20))
     
     def update_settings(self, user_id, settings):
-        """Update user settings"""
+        """Update user settings by merging with existing settings"""
         try:
+            # Build update with dot notation to merge settings
+            update_fields = {}
+            for key, value in settings.items():
+                update_fields[f'settings.{key}'] = value
+            
             result = self.collection.update_one(
                 {'_id': ObjectId(user_id)},
-                {'$set': {'settings': settings}}
+                {'$set': update_fields}
             )
             return result.modified_count > 0 or result.matched_count > 0
         except Exception as e:
