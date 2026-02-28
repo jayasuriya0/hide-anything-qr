@@ -16,6 +16,16 @@ from config.security import (
 
 content_bp = Blueprint('content', __name__)
 
+# Test endpoint to verify blueprint registration
+@content_bp.route('/test-email-route', methods=['GET'])
+def test_email_route():
+    """Test endpoint to verify routing works"""
+    print("=" * 80)
+    print("TEST ENDPOINT HIT!")
+    print("=" * 80)
+    sys.stdout.flush()
+    return jsonify({'status': 'ok', 'message': 'Email route blueprint is working'}), 200
+
 @content_bp.route('/share/text', methods=['POST'])
 @jwt_required()
 def share_text():
