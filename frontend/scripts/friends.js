@@ -424,25 +424,72 @@ window.closeProfileModal = function() {
 };
 
 // View QR Content from profile
-window.viewQRContent = function(contentId) {
-    // Close profile modal and navigate to received QR section
-    closeProfileModal();
-    
-    // Navigate to received section
-    const receivedTab = document.querySelector('[data-section="received"]');
-    if (receivedTab) {
-        receivedTab.click();
-    }
-    
-    // Highlight the QR code
-    setTimeout(() => {
-        const qrElement = document.querySelector(`[data-content-id="${contentId}"]`);
-        if (qrElement) {
-            qrElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
-            qrElement.style.boxShadow = '0 0 0 3px #667eea';
-            setTimeout(() => {
-                qrElement.style.boxShadow = '';
-            }, 2000);
+window.viewQRContent = async function(contentId) {
+    try {
+        console.log('Viewing QR content:', contentId);
+        
+        // Fetch the QR content details
+        const response = await apiRequest(`/content/shared/received`);
+        if (!response.ok) {
+            throw new Error('Failed to fetch QR content');
         }
-    }, 300);
+        
+        const receivedContent = await response.json();
+        const qrContent = receivedContent.find(c => c.content_id === contentId);
+        
+        if (!qrContent) {
+            showError('QR content not found');
+            return;
+        }
+        
+        // Display the QR content in a modal (without closing profile modal)
+        const modal = document.createElement('div');
+        modal.className = 'modal';
+        modal.style.cssText = 'position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); z-index: 10000; display: flex; align-items: center; justify-content: center;';
+        
+        modal.innerHTML = `
+            <div style="background: #1a1a2e; border-radius: 1rem; padding: 2rem; max-width: 600px; width: 90%; max-height: 80vh; overflow-y: auto; position: relative;">
+                <button onclick="this.closest('.modal').remove()" style="position: absolute; top: 1rem; right: 1rem; background: rgba(255,255,255,0.1); border: none; color: white; width: 32px; height: 32px; border-radius: 50%; cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 1.2rem;">
+                    ×
+                </button>
+                <h3 style="margin-bottom: 1.5rem;"><i class="fas fa-${qrContent.type === 'text' ? 'font' : qrContent.type === 'file' ? 'file' : 'link'}"></i> ${qrContent.type.charAt(0).toUpperCase() + qrContent.type.slice(1)} Content</h3>
+                
+                ${qrContent.type === 'text' ? `
+                    <div style="background: rgba(255,255,255,0.05); padding: 1rem; border-radius: 0.5rem; margin-bottom: 1rem;">
+                        <pre style="white-space: pre-wrap; word-wrap: break-word; margin: 0;">${qrContent.decrypted_data || qrContent.encrypted_data}</pre>
+                    </div>
+                ` : qrContent.type === 'file' ? `
+                    <div style="background: rgba(255,255,255,0.05); padding: 1rem; border-radius: 0.5rem; margin-bottom: 1rem;">
+                        <p><strong>Filename:</strong> ${qrContent.filename || 'Unknown'}</p>
+                        <p><strong>Size:</strong> ${qrContent.file_size ? (qrContent.file_size / 1024).toFixed(2) + ' KB' : 'Unknown'}</p>
+                        ${qrContent.file_url ? `<a href="${qrContent.file_url}" class="btn btn-primary" download style="margin-top: 0.5rem;"><i class="fas fa-download"></i> Download</a>` : ''}
+                    </div>
+                ` : `
+                    <div style="background: rgba(255,255,255,0.05); padding: 1rem; border-radius: 0.5rem; margin-bottom: 1rem;">
+                        <p><strong>URL:</strong></p>
+                        <a href="${qrContent.decrypted_data || qrContent.encrypted_data}" target="_blank" style="color: #667eea; word-break: break-all;">${qrContent.decrypted_data || qrContent.encrypted_data}</a>
+                    </div>
+                `}
+                
+                <div style="font-size: 0.875rem; color: rgba(255,255,255,0.6);">
+                    <p><strong>From:</strong> ${qrContent.sender_username || 'Unknown'}</p>
+                    <p><strong>Shared:</strong> ${new Date(qrContent.created_at).toLocaleString()}</p>
+                    ${qrContent.encryption_level ? `<p><strong>Encryption:</strong> ${qrContent.encryption_level}</p>` : ''}
+                </div>
+            </div>
+        `;
+        
+        document.body.appendChild(modal);
+        
+        // Close on background click
+        modal.addEventListener('click', (e) => {
+            if (e.target === modal) {
+                modal.remove();
+            }
+        });
+        
+    } catch (error) {
+        console.error('Error viewing QR content:', error);
+        showError('Failed to load QR content');
+    }
 };
