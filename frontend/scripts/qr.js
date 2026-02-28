@@ -356,6 +356,10 @@ async function startQRScanner() {
     if (!video) return;
     
     try {
+        console.log('==========================================');
+        console.log('>>> STARTING QR SCANNER <<<');
+        console.log('==========================================');
+        
         // Request camera permission with better constraints
         const constraints = {
             video: {
@@ -365,12 +369,46 @@ async function startQRScanner() {
             }
         };
         
+        console.log('Requesting camera access...');
         const stream = await navigator.mediaDevices.getUserMedia(constraints);
+        console.log('✓ Camera access granted');
+        
+        // Initialize scanning function - SET BEFORE assigning stream
+        const initializeScanning = () => {
+            console.log('==========================================');
+            console.log('>>> INITIALIZING SCANNER <<<');
+            console.log('Camera ready, video size:', video.videoWidth, 'x', video.videoHeight);
+            console.log('Video ready state:', video.readyState);
+            console.log('==========================================');
+            
+            // Setup overlay canvas with proper dimensions
+            if (overlay) {
+                // Use video element dimensions for overlay
+                overlay.width = video.offsetWidth;
+                overlay.height = video.offsetHeight;
+                overlay.classList.remove('hidden');
+                console.log('✓ Overlay canvas initialized:', overlay.width, 'x', overlay.height);
+            }
+            
+            isScanning = true;
+            scanFrameCount = 0;
+            scanLinePosition = 0;
+            scanLineDirection = 1;
+            
+            console.log('✓ Starting continuous QR scan loop...');
+            scanQRCode();
+            showSuccess('Camera started. Point at a QR code to scan.');
+        };
+        
+        // Set event handler BEFORE assigning stream
+        video.onloadedmetadata = () => {
+            console.log('✓ Video metadata loaded event fired');
+            initializeScanning();
+        };
         
         currentStream = stream;
         video.srcObject = stream;
         video.classList.remove('hidden');
-        await video.play();
         
         if (startBtn) startBtn.classList.add('hidden');
         if (stopBtn) stopBtn.classList.remove('hidden');
@@ -382,27 +420,23 @@ async function startQRScanner() {
             instructions.classList.remove('hidden');
         }
         
-        // Wait for video to be ready
-        video.onloadedmetadata = () => {
-            console.log('Camera ready, video size:', video.videoWidth, 'x', video.videoHeight);
-            console.log('Starting continuous QR scan...');
-            
-            // Setup overlay canvas
-            if (overlay) {
-                overlay.width = video.offsetWidth;
-                overlay.height = video.offsetHeight;
-                overlay.classList.remove('hidden');
-            }
-            
-            isScanning = true;
-            scanFrameCount = 0;
-            console.log('Starting QR scan loop...');
-            scanQRCode();
-            showSuccess('Camera started. Point at a QR code to scan.');
-        };
+        console.log('Starting video playback...');
+        await video.play();
+        console.log('✓ Video playing');
+        
+        // Fallback: If metadata already loaded, initialize immediately
+        if (video.readyState >= 2) { // HAVE_CURRENT_DATA or better
+            console.log('⚠ Metadata already loaded, initializing immediately...');
+            initializeScanning();
+        }
         
     } catch (error) {
-        console.error('Camera access failed:', error);
+        console.error('==========================================');
+        console.error('>>> CAMERA ACCESS ERROR <<<');
+        console.error('Error name:', error.name);
+        console.error('Error message:', error.message);
+        console.error('==========================================');
+        
         let errorMessage = 'Could not access camera. ';
         
         if (error.name === 'NotAllowedError' || error.name === 'PermissionDeniedError') {
@@ -426,6 +460,18 @@ function scanQRCode() {
     const video = document.getElementById('scannerVideo');
     const overlay = document.getElementById('scannerOverlay');
     const indicator = document.getElementById('scanningIndicator');
+    
+    // Check if jsQR library is loaded (only log once)
+    if (scanFrameCount === 0) {
+        if (typeof jsQR !== 'undefined') {
+            console.log('✓ jsQR library loaded and ready');
+        } else {
+            console.error('✗ jsQR library NOT loaded!');
+            showError('QR scanner library not loaded. Please refresh the page.');
+            stopQRScanner();
+            return;
+        }
+    }
     
     if (!isScanning || !video || video.readyState !== video.HAVE_ENOUGH_DATA) {
         if (isScanning) {
@@ -599,7 +645,10 @@ function scanQRCode() {
                 }
             }
         } else {
-            console.error('jsQR library not loaded!');
+            console.error('==========================================');
+            console.error('>>> jsQR LIBRARY NOT LOADED <<<');
+            console.error('typeof jsQR:', typeof jsQR);
+            console.error('==========================================');
             showError('QR scanner library not loaded. Please refresh the page.');
             stopQRScanner();
             return;
