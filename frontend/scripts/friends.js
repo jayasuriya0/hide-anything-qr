@@ -142,7 +142,7 @@ function updateFriendsList() {
             <div class="friend-info">
                 <div class="friend-avatar">${friend.username.charAt(0).toUpperCase()}</div>
                 <div>
-                    <strong>${friend.username}</strong>
+                    <strong style="cursor: pointer; color: #667eea;" onclick="viewUserProfile('${friend.friend_id}')" title="View profile">${friend.username}</strong>
                 </div>
             </div>
             <div style="display: flex; gap: 0.5rem;">

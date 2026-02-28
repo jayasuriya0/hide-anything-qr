@@ -186,6 +186,17 @@ async function openConversation(friendId, friendName) {
     } else {
         avatarEl.textContent = (friendName || 'F').charAt(0).toUpperCase();
     }
+    
+    // Make chat header clickable to view profile
+    const chatFriendInfo = document.querySelector('.chat-friend-info');
+    if (chatFriendInfo) {
+        chatFriendInfo.style.cursor = 'pointer';
+        chatFriendInfo.onclick = () => {
+            if (typeof viewUserProfile === 'function') {
+                viewUserProfile(friendId);
+            }
+        };
+    }
 
     // Load messages
     await loadMessages(friendId);
