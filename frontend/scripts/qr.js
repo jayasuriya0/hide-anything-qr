@@ -336,11 +336,16 @@ function downloadQR(qrData) {
 
 // QR Scanner using WebRTC
 let currentStream = null;
+let scanningInterval = null;
+let isScanning = false;
+let lastScannedCode = null;
+let lastScanTime = 0;
 
 async function startQRScanner() {
     const video = document.getElementById('scannerVideo');
     const startBtn = document.getElementById('startCameraBtn');
     const stopBtn = document.getElementById('stopCameraBtn');
+    const indicator = document.getElementById('scanningIndicator');
     
     if (!video) return;
     
@@ -351,13 +356,19 @@ async function startQRScanner() {
         
         currentStream = stream;
         video.srcObject = stream;
-        video.style.display = 'block';
+        video.classList.remove('hidden');
         video.play();
         
-        if (startBtn) startBtn.style.display = 'none';
-        if (stopBtn) stopBtn.style.display = 'inline-flex';
+        if (startBtn) startBtn.classList.add('hidden');
+        if (stopBtn) stopBtn.classList.remove('hidden');
+        if (indicator) indicator.classList.remove('hidden');
         
-        showSuccess('Camera started. Point at a QR code to scan.');
+        // Wait for video to be ready
+        video.onloadedmetadata = () => {
+            isScanning = true;
+            scanQRCode();
+            showSuccess('Camera started. Point at a QR code to scan.');
+        };
         
     } catch (error) {
         console.error('Camera access failed:', error);
@@ -365,10 +376,108 @@ async function startQRScanner() {
     }
 }
 
+// Make function globally available
+window.startQRScanner = startQRScanner;
+
+function scanQRCode() {
+    const video = document.getElementById('scannerVideo');
+    
+    if (!isScanning || !video || video.readyState !== video.HAVE_ENOUGH_DATA) {
+        if (isScanning) {
+            requestAnimationFrame(scanQRCode);
+        }
+        return;
+    }
+    
+    // Create a canvas to capture video frame
+    const canvas = document.createElement('canvas');
+    const context = canvas.getContext('2d');
+    
+    canvas.width = video.videoWidth;
+    canvas.height = video.videoHeight;
+    
+    if (canvas.width > 0 && canvas.height > 0) {
+        context.drawImage(video, 0, 0, canvas.width, canvas.height);
+        const imageData = context.getImageData(0, 0, canvas.width, canvas.height);
+        
+        // Try to detect QR code using jsQR
+        if (typeof jsQR !== 'undefined') {
+            const code = jsQR(imageData.data, imageData.width, imageData.height, {
+                inversionAttempts: "dontInvert",
+            });
+            
+            if (code && code.data) {
+                const currentTime = Date.now();
+                // Avoid scanning the same code multiple times (debounce 2 seconds)
+                if (code.data !== lastScannedCode || currentTime - lastScanTime > 2000) {
+                    lastScannedCode = code.data;
+                    lastScanTime = currentTime;
+                    handleScannedQR(code.data);
+                    return; // Stop scanning after successful scan
+                }
+            }
+        }
+    }
+    
+    // Continue scanning
+    if (isScanning) {
+        requestAnimationFrame(scanQRCode);
+    }
+}
+
+async function handleScannedQR(qrData) {
+    try {
+        // Stop scanning temporarily
+        isScanning = false;
+        
+        // Provide haptic feedback if available
+        if (navigator.vibrate) {
+            navigator.vibrate(200);
+        }
+        
+        showSuccess('QR Code detected! Decoding...');
+        
+        // Decode the secure QR data
+        const decodedData = decodeSecureQRData(qrData);
+        
+        if (decodedData && decodedData.content_id) {
+            // Fetch and decrypt the content - pass the full decoded data
+            const result = await decodeContent(decodedData);
+            displayDecryptedContent(result);
+            
+            // Stop camera after successful scan
+            stopQRScanner();
+            
+            showSuccess('Content decrypted successfully!');
+        } else {
+            showError('Invalid QR code format');
+            // Resume scanning after 2 seconds
+            setTimeout(() => {
+                isScanning = true;
+                scanQRCode();
+            }, 2000);
+        }
+    } catch (error) {
+        console.error('QR scan error:', error);
+        showError(error.message || 'Failed to decode QR code');
+        
+        // Resume scanning after 2 seconds
+        setTimeout(() => {
+            isScanning = true;
+            scanQRCode();
+        }, 2000);
+    }
+}
+
 window.stopQRScanner = function() {
     const video = document.getElementById('scannerVideo');
     const startBtn = document.getElementById('startCameraBtn');
     const stopBtn = document.getElementById('stopCameraBtn');
+    const indicator = document.getElementById('scanningIndicator');
+    
+    // Stop scanning loop
+    isScanning = false;
+    lastScannedCode = null;
     
     if (currentStream) {
         currentStream.getTracks().forEach(track => track.stop());
@@ -377,11 +486,12 @@ window.stopQRScanner = function() {
     
     if (video) {
         video.srcObject = null;
-        video.style.display = 'none';
+        video.classList.add('hidden');
     }
     
-    if (startBtn) startBtn.style.display = 'inline-flex';
-    if (stopBtn) stopBtn.style.display = 'none';
+    if (startBtn) startBtn.classList.remove('hidden');
+    if (stopBtn) stopBtn.classList.add('hidden');
+    if (indicator) indicator.classList.add('hidden');
 };
 
 // Decode secure QR data

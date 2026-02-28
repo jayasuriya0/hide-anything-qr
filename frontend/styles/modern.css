@@ -972,7 +972,12 @@ body {
     max-width: 500px;
     border-radius: 10px;
     margin-bottom: 1rem;
-    border: 2px solid var(--border-color);
+    border: 2px solid var(--primary);
+    box-shadow: 0 4px 20px rgba(102, 126, 234, 0.3);
+}
+
+.scanner-video.hidden {
+    display: none;
 }
 
 /* ============= Utility Classes ============= */
