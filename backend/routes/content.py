@@ -778,7 +778,7 @@ def cleanup_orphaned_files():
         }), 200
     
     except Exception as e:
-        print(f\"[ERROR] Cleanup failed: {e}\")
+        print(f"[ERROR] Cleanup failed: {e}")
         return jsonify({
             'status': 'error',
             'message': f'Cleanup failed: {str(e)}'
@@ -810,7 +810,7 @@ def get_upload_sessions_status():
         }), 200
     
     except Exception as e:
-        print(f\"[ERROR] Status check failed: {e}\")
+        print(f"[ERROR] Status check failed: {e}")
         return jsonify({
             'status': 'error',
             'message': f'Status check failed: {str(e)}'
