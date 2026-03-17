@@ -1,0 +1,54 @@
+version: '3.8'
+
+services:
+  # MongoDB Database - Local Development
+  mongodb:
+    image: mongo:7.0
+    container_name: hideanything-mongodb
+    restart: unless-stopped
+    ports:
+      - "27017:27017"
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: admin
+      MONGO_INITDB_ROOT_PASSWORD: changeme123
+      MONGO_INITDB_DATABASE: hide_anything_qr
+    volumes:
+      - mongodb_data:/data/db
+      - mongodb_config:/data/configdb
+    networks:
+      - hideanything-network
+    healthcheck:
+      test: echo 'db.runCommand("ping").ok' | mongosh localhost:27017/test --quiet
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Redis Cache - Local Development
+  redis:
+    image: redis:7-alpine
+    container_name: hideanything-redis
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+    command: redis-server --requirepass redispass123
+    volumes:
+      - redis_data:/data
+    networks:
+      - hideanything-network
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+networks:
+  hideanything-network:
+    driver: bridge
+
+volumes:
+  mongodb_data:
+    driver: local
+  mongodb_config:
+    driver: local
+  redis_data:
+    driver: local

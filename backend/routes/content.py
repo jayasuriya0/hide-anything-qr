@@ -4,6 +4,7 @@ from bson import ObjectId
 import base64
 from io import BytesIO
 import sys
+from datetime import datetime, timezone
 from routes.helpers import get_user_model, get_db, get_socketio, get_content_model, get_encryption_manager, get_qr_generator, get_activity_model, get_notification_model
 from config.security import (
     validate_file_upload,
@@ -11,7 +12,16 @@ from config.security import (
     validate_object_id,
     sanitize_html,
     secure_filename,
-    RATE_LIMITS
+    RATE_LIMITS,
+    is_production
+)
+from utils.file_operations import (
+    FileOperationRetry,
+    FileErrorCode,
+    calculate_file_hash,
+    verify_file_hash,
+    create_error_response,
+    create_success_response
 )
 
 content_bp = Blueprint('content', __name__)
@@ -621,12 +631,14 @@ def decode_content():
             
             # Get encrypted data
             if content['metadata'].get('type') == 'file' and 'file_id' in content:
-                # For files, retrieve from GridFS first
-                grid_file = content_model.get_file(content['file_id'])
-                if grid_file:
-                    encrypted_data_str = grid_file.read().decode('utf-8')
-                else:
-                    raise Exception("File not found in GridFS")
+                # For files, retrieve from GridFS with verified error handling
+                file_data, file_error = content_model.read_file_with_verification(content['file_id'])
+                if file_error:
+                    # Specific error code for file retrieval issues
+                    decryption_error = f"{file_error['code']}: {file_error['message']}"
+                    raise Exception(decryption_error)
+                
+                encrypted_data_str = file_data.decode('utf-8')
             else:
                 # For text, use encrypted_data directly
                 encrypted_data_str = content['encrypted_data']
@@ -743,6 +755,66 @@ def download_file(content_id):
         
     except Exception as e:
         return jsonify({'error': str(e)}), 500
+
+@content_bp.route('/maintenance/cleanup-orphaned', methods=['POST'])
+def cleanup_orphaned_files():
+    """
+    Maintenance endpoint to cleanup orphaned chunks from failed uploads
+    Should be called periodically (e.g., via cron job)
+    """
+    try:
+        # Optional: Add authentication check
+        # auth_token = request.headers.get('Authorization')
+        # if not verify_admin_token(auth_token):
+        #     return jsonify({'error': 'Unauthorized'}), 401
+        
+        content_model = get_content_model()
+        result = content_model.cleanup_orphaned_chunks()
+        
+        return jsonify({
+            'status': 'success',
+            'message': 'Cleanup completed successfully',
+            'result': result
+        }), 200
+    
+    except Exception as e:
+        print(f\"[ERROR] Cleanup failed: {e}\")
+        return jsonify({
+            'status': 'error',
+            'message': f'Cleanup failed: {str(e)}'
+        }), 500
+
+@content_bp.route('/maintenance/upload-sessions-status', methods=['GET'])
+def get_upload_sessions_status():
+    """Get status of upload sessions (for monitoring)"""
+    try:
+        from bson import ObjectId
+        
+        db = get_db()
+        
+        # Get upload sessions grouped by status
+        sessions_by_status = {}
+        for status in ['in_progress', 'completed', 'verified', 'failed']:
+            count = db.upload_sessions.count_documents({'status': status})
+            sessions_by_status[status] = count
+        
+        # Get total size of pending uploads
+        pending = db.upload_sessions.find({'status': 'in_progress'})
+        total_pending_size = sum(s.get('total_size', 0) for s in pending)
+        
+        return jsonify({
+            'status': 'success',
+            'sessions_by_status': sessions_by_status,
+            'total_pending_size_mb': total_pending_size / (1024 * 1024),
+            'timestamp': datetime.now(timezone.utc).isoformat()
+        }), 200
+    
+    except Exception as e:
+        print(f\"[ERROR] Status check failed: {e}\")
+        return jsonify({
+            'status': 'error',
+            'message': f'Status check failed: {str(e)}'
+        }), 500
 
 @content_bp.route('/received', methods=['GET'])
 @jwt_required()

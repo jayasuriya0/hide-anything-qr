@@ -1,12 +1,11 @@
-# CRITICAL: Eventlet monkey patching MUST be done before any other imports
-# This prevents "ReferenceError: weakly-referenced object no longer exists"
-import eventlet
-eventlet.monkey_patch()
+# Gevent monkey patching for Python 3.13+ compatibility
+from gevent import monkey
+monkey.patch_all()
 
 from app import app, socketio
 
 # For production deployment (Render/Heroku/etc)
-# Gunicorn with eventlet worker will use this
+# Gunicorn with gevent worker will use this
 # The socketio app wraps the Flask app for WebSocket support
 
 if __name__ == '__main__':
